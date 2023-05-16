@@ -19,8 +19,6 @@ function initMap() {
     return map;
 }
 
-
-
 function getColorForMeasurement(measurements) {
     let highestPmValue = 0;
 
@@ -46,9 +44,9 @@ function getColorForMeasurement(measurements) {
 }
 
 async function addMarkers(map, measurementsByLocation) {
-    console.log("Dodawanie znaczników dla:", measurementsByLocation); // Logowanie danych wejœciowych
+    console.log("Adding markers for:", measurementsByLocation);
     for (const [location, measurementTypes] of Object.entries(measurementsByLocation)) {
-        console.log("Dodawanie znaczników dla lokalizacji:", location); // Logowanie dla ka¿dej lokalizacji
+        console.log("Adding markers for location:", location);
         let firstMeasurement = Object.values(measurementTypes)[0];
         const { coordinates } = firstMeasurement;
 
@@ -63,58 +61,15 @@ async function addMarkers(map, measurementsByLocation) {
 
             marker.bindPopup(popupContent);
         } else {
-            console.warn(`Nie mo¿na dodaæ znacznika dla lokalizacji "${location}" z powodu braku wspó³rzêdnych.`);
+            console.warn(`Unable to add marker for location "${location}" due to missing coordinates.`);
         }
 
-        await new Promise(resolve => setTimeout(resolve, 0)); // Daje czas na przetworzenie innych zadañ
+        await new Promise(resolve => setTimeout(resolve, 0));
     }
 }
 
-
-
-
-
-
-function addAirQualityMarkers(map, measurements) {
-    Object.entries(measurements).forEach(([measurementType, measurementList]) => {
-        addMarkers(map, measurementList, measurementType);
-    });
-}
-
 window.initializeAirQualityMap = function () {
-    return initMap();
+    const map = initMap();
+    fetchOpenAQData().then(measurements => addMarkers(map, measurements));
+    return map;
 }
-
-
-//function groupMeasurementsByLocation(measurements) {
-//    console.log("Inside groupMeasurementsByLocation"); // Log
-//    const locations = {};
-
-//    measurements.forEach(measurement => {
-//        const location = measurement.location;
-
-//        if (!locations[location]) {
-//            locations[location] = {};
-//        }
-
-//        const type = measurement.parameter;
-
-//        if (!locations[location][type]) {
-//            locations[location][type] = [];
-//        }
-
-//        locations[location][type].push(measurement);
-//    });
-
-//    for (const location in locations) {
-//        for (const type in locations[location]) {
-//            locations[location][type].sort((a, b) => new Date(b.date.utc) - new Date(a.date.utc));
-//            locations[location][type] = locations[location][type][0];
-//        }
-//    }
-
-//    console.log("Final Locations: ", locations); // Log
-//    console.log("Returning...."); // Log
-//    return locations;
-//}
-

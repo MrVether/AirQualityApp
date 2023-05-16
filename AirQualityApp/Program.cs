@@ -1,11 +1,15 @@
+using AirQualityApp.Models;
 using AirQualityApp.Services;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
-builder.Services.AddSingleton<OpenAqApiClient>();
+builder.Services.AddScoped<OpenAqApiClient>();
+var connectionString = builder.Configuration.GetConnectionString("AirQualityDB");
+builder.Services.AddDbContext<AirQualityContext>(options => options.UseSqlServer(connectionString));
 
 var app = builder.Build();
 

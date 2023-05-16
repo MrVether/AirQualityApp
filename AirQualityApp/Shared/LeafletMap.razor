@@ -4,16 +4,18 @@
 @using System.Text.Json
 @inject IJSRuntime JSRuntime
 @inject OpenAqApiClient OpenAqApiClient
+@using AirQualityApp.Models
+
 
 <div id="map"></div>
 
 @code {
-
     private async Task InitializeMapAsync()
     {
         var map = await JSRuntime.InvokeAsync<IJSObjectReference>("initializeAirQualityMap");
-        var countries = await OpenAqApiClient.GetCountriesAsync();
 
+        // Fetch data from API and update DB
+        var countries = await OpenAqApiClient.GetCountriesAsync();
         var measurements = new List<Measurement>();
 
         foreach (var country in countries)
@@ -23,18 +25,29 @@
 
             measurements.AddRange(pm10);
             measurements.AddRange(pm25);
+        }
 
+        // Fetch data from DB
+        countries = OpenAqApiClient.GetCountriesFromDb();
+        measurements.Clear();
+        foreach (var country in countries)
+        {
+            var pm10 = OpenAqApiClient.GetGlobalMeasurementsFromDb("pm10", country.Code);
+            var pm25 = OpenAqApiClient.GetGlobalMeasurementsFromDb("pm25", country.Code);
 
-            try
-            {
-                var measurementsByLocation = OpenAqApiClient.GroupMeasurementsByLocation(measurements);
-                Console.WriteLine("Received measurements by location: " + measurementsByLocation.ToString());
-                await JSRuntime.InvokeVoidAsync("addMarkers", map, measurementsByLocation);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("Wystąpił błąd podczas wywoływania funkcji JavaScript: " + e.Message);
-            }
+            measurements.AddRange(pm10);
+            measurements.AddRange(pm25);
+        }
+
+        try
+        {
+            var measurementsByLocation = OpenAqApiClient.GroupMeasurementsByLocation(measurements);
+            Console.WriteLine("Received measurements by location: " + measurementsByLocation.ToString());
+            await JSRuntime.InvokeVoidAsync("addMarkers", map, measurementsByLocation);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("Wystąpił błąd podczas wywoływania funkcji JavaScript: " + e.Message);
         }
     }
 
