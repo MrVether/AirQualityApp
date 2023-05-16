@@ -1,54 +1,42 @@
 ﻿@page "/leafletmap"
 @using Microsoft.JSInterop
 @using AirQualityApp.Services
+@using System.Text.Json
 @inject IJSRuntime JSRuntime
 @inject OpenAqApiClient OpenAqApiClient
 
 <div id="map"></div>
 
 @code {
+
     private async Task InitializeMapAsync()
     {
         var map = await JSRuntime.InvokeAsync<IJSObjectReference>("initializeAirQualityMap");
-        var pm10 = await OpenAqApiClient.GetMeasurementsAsync("Kraków", "pm10", 100);
-        var pm25 = await OpenAqApiClient.GetMeasurementsAsync("Kraków", "pm25", 100);
-        var o3 = await OpenAqApiClient.GetMeasurementsAsync("Kraków", "o3", 100);
-        var co = await OpenAqApiClient.GetMeasurementsAsync("Kraków", "co", 100);
-        var no2 = await OpenAqApiClient.GetMeasurementsAsync("Kraków", "no2", 100);
-        var so2 = await OpenAqApiClient.GetMeasurementsAsync("Kraków", "so2", 100);
-        var no2_concentration = await OpenAqApiClient.GetMeasurementsAsync("Kraków", "no2", 100);
-        var co_concentration = await OpenAqApiClient.GetMeasurementsAsync("Kraków", "co", 100);
-        var so2_concentration = await OpenAqApiClient.GetMeasurementsAsync("Kraków", "so2", 100);
-        var o3_concentration = await OpenAqApiClient.GetMeasurementsAsync("Kraków", "o3", 100);
-        var bc = await OpenAqApiClient.GetMeasurementsAsync("Kraków", "bc", 100);
+        var countries = await OpenAqApiClient.GetCountriesAsync();
 
         var measurements = new List<Measurement>();
-        measurements.AddRange(pm10);
-        measurements.AddRange(pm25);
-        measurements.AddRange(o3);
-        measurements.AddRange(co);
-        measurements.AddRange(no2);
-        measurements.AddRange(so2);
-        measurements.AddRange(no2_concentration);
-        measurements.AddRange(co_concentration);
-        measurements.AddRange(so2_concentration);
-        measurements.AddRange(o3_concentration);
-        measurements.AddRange(bc);
 
-        try
+        foreach (var country in countries)
         {
-            var measurementsByLocation = await JSRuntime.InvokeAsync<object>("groupMeasurementsByLocation", measurements);
-            Console.WriteLine("groupMeasurementsByLocation wykonane pomyślnie");
-            await JSRuntime.InvokeVoidAsync("addMarkers", map, measurementsByLocation);
-            Console.WriteLine("addMarkers wykonane pomyślnie");
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine("Wystąpił błąd podczas wywoływania funkcji JavaScript: " + e.Message);
+            var pm10 = await OpenAqApiClient.GetGlobalMeasurementsAsync("pm10", country.Code);
+            var pm25 = await OpenAqApiClient.GetGlobalMeasurementsAsync("pm25", country.Code);
+
+            measurements.AddRange(pm10);
+            measurements.AddRange(pm25);
+
+
+            try
+            {
+                var measurementsByLocation = OpenAqApiClient.GroupMeasurementsByLocation(measurements);
+                Console.WriteLine("Received measurements by location: " + measurementsByLocation.ToString());
+                await JSRuntime.InvokeVoidAsync("addMarkers", map, measurementsByLocation);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Wystąpił błąd podczas wywoływania funkcji JavaScript: " + e.Message);
+            }
         }
     }
-
-
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
