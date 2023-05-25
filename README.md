@@ -1,0 +1,7 @@
+The AirQuality App project aims to create a globally accessible application that provides real-time air quality information from around the world. Leveraging the data from OpenAQ's API, a leading open-source platform that aggregates and shares air quality data, this application intends to bring air pollution awareness at your fingertips.
+
+The core feature of the AirQuality App is its real-time air quality monitoring capability. Users can check the current air quality index (AQI) of any location worldwide, providing vital information about the concentrations of different pollutants such as PM2.5, PM10, NO2, SO2, CO, and O3. This crucial data can help individuals, especially those with respiratory conditions, plan their daily activities accordingly to minimize their exposure to air pollution.
+
+Furthermore, the app intends to include a feature for users to receive notifications or alerts about significant changes in air quality levels. These alerts can prompt users to take necessary precautions when air pollution levels rise above safe limits.
+
+Overall, the AirQuality App aims to provide an easily accessible platform to increase global awareness about air pollution and empower individuals to make informed decisions to protect their health. By harnessing the power of open-source data from OpenAQ, this project seeks to make a positive impact on global public health and environmental sustainability.
