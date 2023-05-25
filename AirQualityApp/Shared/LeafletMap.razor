@@ -14,22 +14,10 @@
     {
         var map = await JSRuntime.InvokeAsync<IJSObjectReference>("initializeAirQualityMap");
 
-        // Fetch data from API and update DB
-        var countries = await OpenAqApiClient.GetCountriesAsync();
+    // Fetch data from DB
         var measurements = new List<Measurement>();
+        var countries = OpenAqApiClient.GetCountriesFromDb();
 
-        foreach (var country in countries)
-        {
-            var pm10 = await OpenAqApiClient.GetGlobalMeasurementsAsync("pm10", country.Code);
-            var pm25 = await OpenAqApiClient.GetGlobalMeasurementsAsync("pm25", country.Code);
-
-            measurements.AddRange(pm10);
-            measurements.AddRange(pm25);
-        }
-
-        // Fetch data from DB
-        countries = OpenAqApiClient.GetCountriesFromDb();
-        measurements.Clear();
         foreach (var country in countries)
         {
             var pm10 = OpenAqApiClient.GetGlobalMeasurementsFromDb("pm10", country.Code);
@@ -43,11 +31,11 @@
         {
             var measurementsByLocation = OpenAqApiClient.GroupMeasurementsByLocation(measurements);
             Console.WriteLine("Received measurements by location: " + measurementsByLocation.ToString());
-            await JSRuntime.InvokeVoidAsync("addMarkers", map, measurementsByLocation);
+            await JSRuntime.InvokeVoidAsync("updateMarkers", map, measurementsByLocation);
         }
         catch (Exception e)
         {
-            Console.WriteLine("Wystąpił błąd podczas wywoływania funkcji JavaScript: " + e.Message);
+            Console.WriteLine("Error: " + e.Message);
         }
     }
 
@@ -55,7 +43,11 @@
     {
         if (firstRender)
         {
-            await InitializeMapAsync();
+            while (true)
+            {
+                await InitializeMapAsync();
+                await Task.Delay(TimeSpan.FromMinutes(10));
+            }
         }
     }
 }

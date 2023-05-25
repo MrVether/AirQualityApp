@@ -1,3 +1,5 @@
+let markersByLocation = {};
+
 async function fetchOpenAQData() {
     const url = "https://api.openaq.org/v2/measurements?limit=10000";
     const response = await fetch(url);
@@ -43,33 +45,56 @@ function getColorForMeasurement(measurements) {
     }
 }
 
-async function addMarkers(map, measurementsByLocation) {
-    console.log("Adding markers for:", measurementsByLocation);
+async function updateMarkers(map, measurementsByLocation) {
+    console.log("Updating markers for:", measurementsByLocation);
     for (const [location, measurementTypes] of Object.entries(measurementsByLocation)) {
-        console.log("Adding markers for location:", location);
+        console.log("Updating markers for location:", location);
         let firstMeasurement = Object.values(measurementTypes)[0];
         const { coordinates } = firstMeasurement;
 
         if (coordinates) {
             const latLng = [coordinates.latitude, coordinates.longitude];
-            const marker = L.circle(latLng, { color: getColorForMeasurement(measurementTypes), radius: 500 }).addTo(map);
+            let marker = markersByLocation[location];
 
-            let popupContent = `<b>${location}</b>:<br/>`;
-            for (const [type, measurement] of Object.entries(measurementTypes)) {
-                popupContent += `${type}: ${measurement.value} ${measurement.unit}<br/>`;
+            if (Object.values(measurementTypes).length > 0) {
+                let firstMeasurement = Object.values(measurementTypes)[0];
+
+                if (marker) {
+                    marker.setLatLng(latLng);
+                    marker.setStyle({ color: getColorForMeasurement(measurementTypes) });
+                } else {
+                    marker = L.circle(latLng, { color: getColorForMeasurement(measurementTypes), radius: 500 }).addTo(map);
+                    markersByLocation[location] = marker;
+                }
+
+                let popupContent = `<b>${location}</b>:<br/>`;
+                for (const [type, measurement] of Object.entries(measurementTypes)) {
+                    let lastUpdate = measurement.date.utc;
+                    popupContent += `${type}: ${measurement.value} ${measurement.unit}<br/>Last Update: ${lastUpdate}<br/>`;
+                }
+
+                marker.bindPopup(popupContent);
+            } else {
+                console.warn(`Unable to add marker for location "${location}" due to missing measurements.`);
             }
-
-            marker.bindPopup(popupContent);
         } else {
             console.warn(`Unable to add marker for location "${location}" due to missing coordinates.`);
         }
 
         await new Promise(resolve => setTimeout(resolve, 0));
     }
+
+    for (const location of Object.keys(markersByLocation)) {
+        if (!measurementsByLocation[location]) {
+            map.removeLayer(markersByLocation[location]);
+            delete markersByLocation[location];
+        }
+    }
 }
+
 
 window.initializeAirQualityMap = function () {
     const map = initMap();
-    fetchOpenAQData().then(measurements => addMarkers(map, measurements));
+    fetchOpenAQData().then(measurements => updateMarkers(map, measurements));
     return map;
 }

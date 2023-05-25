@@ -63,18 +63,42 @@ namespace AirQualityApp.Services
             // Save to DB
             foreach (var measurement in measurements)
             {
-                // Find the measurement in the database. If it doesn't exist, add it.
                 var existingMeasurement = _context.Measurements
+                    .Include(m => m.Date)
+                    .Include(m => m.Coordinates)
                     .FirstOrDefault(m => m.Location == measurement.Location && m.Parameter == measurement.Parameter);
                 if (existingMeasurement == null)
                 {
+                    var existingDate = _context.Dates.FirstOrDefault(d => d.Utc == measurement.Date.Utc && d.Local == measurement.Date.Local);
+                    var existingCoordinates = _context.Coordinates.FirstOrDefault(c => c.Latitude == measurement.Coordinates.Latitude && c.Longitude == measurement.Coordinates.Longitude);
+
+                    if (existingDate == null)
+                    {
+                        _context.Dates.Add(measurement.Date);
+                        await _context.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        measurement.Date = existingDate;
+                    }
+
+                    if (existingCoordinates == null)
+                    {
+                        _context.Coordinates.Add(measurement.Coordinates);
+                        await _context.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        measurement.Coordinates = existingCoordinates;
+                    }
+
                     _context.Measurements.Add(measurement);
                 }
                 else
                 {
-                    // Update the existing measurement if needed
                     existingMeasurement.Value = measurement.Value;
-                    existingMeasurement.Date = measurement.Date;
+                    existingMeasurement.Date = _context.Dates.FirstOrDefault(d => d.Utc == measurement.Date.Utc && d.Local == measurement.Date.Local);
+                    existingMeasurement.Coordinates = _context.Coordinates.FirstOrDefault(c => c.Latitude == measurement.Coordinates.Latitude && c.Longitude == measurement.Coordinates.Longitude);
                 }
             }
             await _context.SaveChangesAsync();
@@ -82,10 +106,13 @@ namespace AirQualityApp.Services
             return measurements;
         }
 
+
         public List<Measurement> GetGlobalMeasurementsFromDb(string parameter, string country)
         {
             return _context.Measurements
                 .Where(m => m.Parameter == parameter && m.Country == country)
+                .Include(d => d.Date)
+                .Include(c=>c.Coordinates)
                 .ToList();
         }
 
@@ -102,56 +129,70 @@ namespace AirQualityApp.Services
                     if (response.IsSuccessStatusCode)
                     {
                         var content = await response.Content.ReadAsStringAsync();
-                        _logger.LogInformation($"Successfully fetched data from {url}");
+                     //   _logger.LogInformation($"Successfully fetched data from {url}");
                         return content;
                     }
                     else
                     {
                         var error = $"Error fetching data from OpenAQ API at {url}. Status Code: {response.StatusCode}. Attempt {i + 1} of {attempts}.";
                         _logger.LogError(error);
-                        if (i == attempts - 1) // if it is the last attempt
+                        if (i == attempts - 1)
                         {
-                            return string.Empty; // return empty string after the last attempt
+                            return string.Empty;
                         }
                     }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError($"Exception during fetching data from OpenAQ API at {url}. Attempt {i + 1} of {attempts}. Exception: {ex.Message}");
-                    Task.Delay(5000);
-                    if (i == attempts - 1) // if it is the last attempt
+                    if (ex is System.Net.Sockets.SocketException socketException && socketException.SocketErrorCode == System.Net.Sockets.SocketError.HostNotFound)
                     {
-                        return string.Empty; // return empty string after the last attempt
+                        _logger.LogError($"Host not found. Stopping further attempts.");
+                        break; 
+                    }
+                    else
+                    {
+                        await Task.Delay(5000); 
+                        if (i == attempts - 1)
+                        {
+                            return string.Empty;
+                        }
                     }
                 }
             }
-            return string.Empty; // this should never be reached, but it's here for safety
+            return string.Empty;
         }
 
-        public Dictionary<string, Dictionary<string,Measurement>> GroupMeasurementsByLocation(List<Measurement> measurements)
+
+        public Dictionary<string, Dictionary<string, Measurement>> GroupMeasurementsByLocation(List<Measurement> measurements)
         {
-            var locations = new Dictionary<string, Dictionary<string,Measurement>>();
+            var locations = new Dictionary<string, Dictionary<string, Measurement>>();
 
             foreach (var measurement in measurements)
             {
-                var location = measurement.Location;
-
-                if (!locations.ContainsKey(location))
+                if (measurement != null)
                 {
-                    locations[location] = new Dictionary<string,Measurement>();
-                }
+                    var location = measurement.Location;
 
-                var type = measurement.Parameter;
+                    if (!locations.ContainsKey(location))
+                    {
+                        locations[location] = new Dictionary<string, Measurement>();
+                    }
 
-                if (!locations[location].ContainsKey(type) ||
-                    DateTime.Parse(locations[location][type].Date.Utc) < DateTime.Parse(measurement.Date.Utc))
-                {
-                    locations[location][type] = measurement;
+                    var type = measurement.Parameter;
+
+                    if (measurement.Date != null && (!locations[location].ContainsKey(type) ||
+                                                     DateTime.Parse(locations[location][type].Date.Utc) < DateTime.Parse(measurement.Date.Utc)))
+                    {
+                        locations[location][type] = measurement;
+                    }
                 }
             }
 
             return locations;
         }
+
+
 
 
         public class CountriesResponse

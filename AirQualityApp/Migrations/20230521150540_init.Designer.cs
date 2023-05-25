@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AirQualityApp.Migrations
 {
     [DbContext(typeof(AirQualityContext))]
-    [Migration("20230516181717_init")]
+    [Migration("20230521150540_init")]
     partial class init
     {
         /// <inheritdoc />

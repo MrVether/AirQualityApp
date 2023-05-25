@@ -74,5 +74,6 @@ namespace AirQualityApp.Models
 
         [ForeignKey("CoordinatesId")]
         public Coordinates Coordinates { get; set; }
+
     }
 }

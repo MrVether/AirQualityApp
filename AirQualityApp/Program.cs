@@ -1,3 +1,5 @@
+using AirQualityApp.BackgroundServices;
+using AirQualityApp.Hubs;
 using AirQualityApp.Models;
 using AirQualityApp.Services;
 using Microsoft.EntityFrameworkCore;
@@ -8,6 +10,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddScoped<OpenAqApiClient>();
+builder.Services.AddHostedService<DataRefreshService>();
+builder.Services.AddSignalR();
+
+
 var connectionString = builder.Configuration.GetConnectionString("AirQualityDB");
 builder.Services.AddDbContext<AirQualityContext>(options => options.UseSqlServer(connectionString));
 
@@ -29,5 +35,6 @@ app.UseRouting();
 
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
+app.MapHub<MapHub>("/mapHub");
 
 app.Run();
