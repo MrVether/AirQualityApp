@@ -4,8 +4,8 @@
 @using System.Text.Json
 @inject IJSRuntime JSRuntime
 @inject OpenAqApiClient OpenAqApiClient
+@inject MeasurementCacheService CacheService
 @using AirQualityApp.Models
-
 
 <div id="map"></div>
 
@@ -14,7 +14,34 @@
     {
         var map = await JSRuntime.InvokeAsync<IJSObjectReference>("initializeAirQualityMap");
 
-    // Fetch data from DB
+        var measurements = await GetMeasurementsAsync();
+
+        try
+        {
+            var measurementsByLocation = OpenAqApiClient.GroupMeasurementsByLocation(measurements);
+            Console.WriteLine("Received measurements by location: " + measurementsByLocation.ToString());
+            await JSRuntime.InvokeVoidAsync("updateMarkers", map, measurementsByLocation);
+            Console.WriteLine("Markers Added");
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("Error: " + e.Message);
+        }
+    }
+
+    public async Task<List<Measurement>> GetMeasurementsAsync()
+    {
+        if (CacheService.CachedMeasurements == null)  
+        {
+            CacheService.CachedMeasurements = await FetchMeasurementsFromApi(); 
+            StartAutoRefresh();
+        }
+
+        return CacheService.CachedMeasurements; 
+    }
+
+    private async Task<List<Measurement>> FetchMeasurementsFromApi()
+    {
         var measurements = new List<Measurement>();
         var countries = OpenAqApiClient.GetCountriesFromDb();
 
@@ -27,27 +54,26 @@
             measurements.AddRange(pm25);
         }
 
-        try
+        return measurements;
+    }
+
+    private void StartAutoRefresh()
+    {
+        Task.Run(async () =>
         {
-            var measurementsByLocation = OpenAqApiClient.GroupMeasurementsByLocation(measurements);
-            Console.WriteLine("Received measurements by location: " + measurementsByLocation.ToString());
-            await JSRuntime.InvokeVoidAsync("updateMarkers", map, measurementsByLocation);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine("Error: " + e.Message);
-        }
+            while (true)
+            {
+                await Task.Delay(TimeSpan.FromMinutes(10));
+                CacheService.CachedMeasurements = await FetchMeasurementsFromApi();  
+            }
+        });
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            while (true)
-            {
-                await InitializeMapAsync();
-                await Task.Delay(TimeSpan.FromMinutes(10));
-            }
+            await InitializeMapAsync();
         }
     }
 }

@@ -1,9 +1,16 @@
 let markersByLocation = {};
 
 async function fetchOpenAQData() {
-    const url = "https://api.openaq.org/v2/measurements?limit=10000";
+    const url = "https://api.openaq.org/v2/measurements?limit=100000";
     const response = await fetch(url);
-    const data = await response.json();
+    let data;
+
+    try {
+        data = await response.json();
+    } catch (e) {
+        console.error("Invalid JSON response:", e);
+        return [];
+    }
 
     if (Array.isArray(data.results)) {
         return data.results;
@@ -13,13 +20,32 @@ async function fetchOpenAQData() {
     }
 }
 
+
+window.airQualityMap = null;
+
 function initMap() {
-    const map = L.map("map").setView([0, 0], 2);
+
+    if (window.airQualityMap) {
+        return window.airQualityMap;
+    }
+
+    const map = L.map("map", {
+        minZoom: 2,
+        maxBounds: [
+            [-90, -180],
+            [90, 180]
+        ]
+    }).setView([0, 0], 2);
+
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
+
+    window.airQualityMap = map;
+
     return map;
 }
+
 
 function getColorForMeasurement(measurements) {
     let highestPmValue = 0;
@@ -88,13 +114,18 @@ async function updateMarkers(map, measurementsByLocation) {
         if (!measurementsByLocation[location]) {
             map.removeLayer(markersByLocation[location]);
             delete markersByLocation[location];
+
         }
     }
+
 }
-
-
 window.initializeAirQualityMap = function () {
     const map = initMap();
-    fetchOpenAQData().then(measurements => updateMarkers(map, measurements));
+    fetchOpenAQData().then(measurements => {
+        if (measurements.length > 0) {
+            updateMarkers(map, measurements)
+        };
+    });
     return map;
 }
+

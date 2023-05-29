@@ -32,7 +32,7 @@ namespace AirQualityApp.BackgroundServices
                 {
                     var openAqApiClient = scope.ServiceProvider.GetRequiredService<OpenAqApiClient>();
                     var countries = openAqApiClient.GetCountriesFromDb();
-
+                    Console.WriteLine("Updating..");
                     foreach (var country in countries)
                     {
       

@@ -69,6 +69,7 @@ namespace AirQualityApp.Services
                     .FirstOrDefault(m => m.Location == measurement.Location && m.Parameter == measurement.Parameter);
                 if (existingMeasurement == null)
                 {
+                    Console.WriteLine("Adding new location");
                     var existingDate = _context.Dates.FirstOrDefault(d => d.Utc == measurement.Date.Utc && d.Local == measurement.Date.Local);
                     var existingCoordinates = _context.Coordinates.FirstOrDefault(c => c.Latitude == measurement.Coordinates.Latitude && c.Longitude == measurement.Coordinates.Longitude);
 

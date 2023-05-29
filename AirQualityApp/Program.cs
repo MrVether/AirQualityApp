@@ -12,6 +12,8 @@ builder.Services.AddServerSideBlazor();
 builder.Services.AddScoped<OpenAqApiClient>();
 builder.Services.AddHostedService<DataRefreshService>();
 builder.Services.AddSignalR();
+builder.Services.AddSingleton<MeasurementCacheService>();
+
 
 
 var connectionString = builder.Configuration.GetConnectionString("AirQualityDB");
