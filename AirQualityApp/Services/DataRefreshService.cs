@@ -62,7 +62,7 @@ namespace AirQualityApp.BackgroundServices
                         }
                     }
                     Console.WriteLine("Updated: " + DateTime.Now);
-                    await Task.Delay(TimeSpan.FromHours(3), stoppingToken);
+                    await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
                 }
             }
         }

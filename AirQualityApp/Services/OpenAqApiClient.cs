@@ -52,14 +52,22 @@ namespace AirQualityApp.Services
         {
             var endpoint = "measurements";
             var measurements = new List<Measurement>();
-            var parameters = $"country={country}&parameter={parameter}";
+            var page = 1;
+            const int limit = 10000; // Maksymalny limit ustawiony przez API
+            MeasurementsResponse measurementsResponse;
 
-            var jsonResponse = await GetDataAsync(endpoint, parameters);
-            var measurementsResponse = JsonConvert.DeserializeObject<MeasurementsResponse>(jsonResponse);
-            if (measurementsResponse != null && measurementsResponse.Results != null)
+            do
             {
-                measurements.AddRange(measurementsResponse.Results);
-            }
+                var parameters = $"country={country}&parameter={parameter}&page={page}&limit={limit}";
+                var jsonResponse = await GetDataAsync(endpoint, parameters);
+                measurementsResponse = JsonConvert.DeserializeObject<MeasurementsResponse>(jsonResponse);
+                if (measurementsResponse != null && measurementsResponse.Results != null)
+                {
+                    measurements.AddRange(measurementsResponse.Results);
+                }
+                page++;
+            } while (measurementsResponse != null && measurementsResponse.Results.Count == limit); // jeśli otrzymano mniej wyników niż limit, to jest ostatnia strona
+
             // Save to DB
             foreach (var measurement in measurements)
             {
