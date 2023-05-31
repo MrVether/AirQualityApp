@@ -53,7 +53,7 @@ namespace AirQualityApp.Services
             var endpoint = "measurements";
             var measurements = new List<Measurement>();
             var page = 1;
-            const int limit = 10000; // Maksymalny limit ustawiony przez API
+            const int limit = 10000;
             MeasurementsResponse measurementsResponse;
 
             do
@@ -66,7 +66,7 @@ namespace AirQualityApp.Services
                     measurements.AddRange(measurementsResponse.Results);
                 }
                 page++;
-            } while (measurementsResponse != null && measurementsResponse.Results.Count == limit); // jeśli otrzymano mniej wyników niż limit, to jest ostatnia strona
+            } while (measurementsResponse != null && measurementsResponse.Results.Count == limit); 
 
             // Save to DB
             foreach (var measurement in measurements)
@@ -138,7 +138,6 @@ namespace AirQualityApp.Services
                     if (response.IsSuccessStatusCode)
                     {
                         var content = await response.Content.ReadAsStringAsync();
-                     //   _logger.LogInformation($"Successfully fetched data from {url}");
                         return content;
                     }
                     else

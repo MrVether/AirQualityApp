@@ -18,6 +18,7 @@
 
         try
         {
+            await OpenAqApiClient.GetCountriesAsync();
             var measurementsByLocation = OpenAqApiClient.GroupMeasurementsByLocation(measurements);
             Console.WriteLine("Received measurements by location: " + measurementsByLocation.ToString());
             await JSRuntime.InvokeVoidAsync("updateMarkers", map, measurementsByLocation);
