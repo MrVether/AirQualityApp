@@ -28,6 +28,10 @@ namespace AirQualityApp.Services
             var endpoint = "countries";
             var jsonResponse = await GetDataAsync(endpoint, "");
             var countriesResponse = JsonConvert.DeserializeObject<CountriesResponse>(jsonResponse);
+            if (countriesResponse == null)
+            {
+                return new List<Country>();
+            }
             var countries = countriesResponse.Results;
 
             // Save to DB
@@ -53,7 +57,7 @@ namespace AirQualityApp.Services
             var endpoint = "measurements";
             var measurements = new List<Measurement>();
             var page = 1;
-            const int limit = 10000;
+            const int limit = 1000;
             MeasurementsResponse measurementsResponse;
 
             do

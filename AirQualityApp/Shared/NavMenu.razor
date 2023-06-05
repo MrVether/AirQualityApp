@@ -1,18 +1,35 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">AirQualityApp</a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-    </div>
-</div>
+﻿<style>
+    #info-panel {
+        background-color: #0B0D0F; /* A light grey background */
+        border-radius: .25rem; /* Rounded borders, like cards in Bootstrap */
+        padding: 1rem; /* Some spacing inside the panel */
+        color: #ffffff; /* A dark grey text color */
+        margin-bottom: 1rem; /* Some spacing below the panel */
+        width: 100%; /* Takes up the full width available */
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.05); /* A subtle drop shadow for depth */
+    }
+
+    #info-panel h2 {
+        font-size: 1.5rem; /* Larger font size for the title */
+        margin-bottom: .5rem; /* Some spacing below the title */
+    }
+
+    #info-panel p {
+        margin-bottom: .5rem; /* Some spacing between paragraphs */
+    }
+
+</style>
+
 
 <div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
     <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="oi oi-home" aria-hidden="true"></span> Home
-            </NavLink>
+        <div id="info-panel">
+            <h2>Details:</h2>
+            <p id="location-name"></p>
+            <p id="pm10"></p>
+            <p id="pm25"></p>
+            <p id="last-update"></p>
+            <p id="air-quality-info"></p>
         </div>
     </nav>
 </div>
@@ -26,4 +43,6 @@
     {
         collapseNavMenu = !collapseNavMenu;
     }
+
+   
 }
