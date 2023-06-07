@@ -17,7 +17,8 @@ builder.Services.AddSingleton<MeasurementCacheService>();
 
 
 var connectionString = builder.Configuration.GetConnectionString("AirQualityDB");
-builder.Services.AddDbContext<AirQualityContext>(options => options.UseSqlServer(connectionString));
+builder.Services.AddDbContext<AirQualityContext>(options => options.UseSqlite(connectionString));
+
 
 var app = builder.Build();
 

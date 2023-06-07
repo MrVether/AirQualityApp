@@ -26,13 +26,23 @@ namespace AirQualityApp.Services
         public async Task<List<Country>> GetCountriesAsync()
         {
             var endpoint = "countries";
-            var jsonResponse = await GetDataAsync(endpoint, "");
-            var countriesResponse = JsonConvert.DeserializeObject<CountriesResponse>(jsonResponse);
-            if (countriesResponse == null)
+            var countries = new List<Country>();
+            var page = 1;
+            const int limit = 100;
+            CountriesResponse countriesResponse;
+
+            do
             {
-                return new List<Country>();
-            }
-            var countries = countriesResponse.Results;
+                var parameters = $"page={page}&limit={limit}";
+                var jsonResponse = await GetDataAsync(endpoint, parameters);
+                countriesResponse = JsonConvert.DeserializeObject<CountriesResponse>(jsonResponse);
+
+                if (countriesResponse != null && countriesResponse.Results != null)
+                {
+                    countries.AddRange(countriesResponse.Results);
+                }
+                page++;
+            } while (countriesResponse != null && countriesResponse.Results.Count == limit);
 
             // Save to DB
             foreach (var country in countries)
@@ -47,6 +57,7 @@ namespace AirQualityApp.Services
             return countries;
         }
 
+
         public List<Country> GetCountriesFromDb()
         {
             return _context.Countries.ToList();
@@ -54,6 +65,7 @@ namespace AirQualityApp.Services
 
         public async Task<List<Measurement>> GetGlobalMeasurementsAsync(string parameter, string country)
         {
+            Console.WriteLine("Measurments Downloading..");
             var endpoint = "measurements";
             var measurements = new List<Measurement>();
             var page = 1;
@@ -67,55 +79,68 @@ namespace AirQualityApp.Services
                 measurementsResponse = JsonConvert.DeserializeObject<MeasurementsResponse>(jsonResponse);
                 if (measurementsResponse != null && measurementsResponse.Results != null)
                 {
-                    measurements.AddRange(measurementsResponse.Results);
+                    measurements.AddRange(measurementsResponse.Results.Select(m =>
+                    {
+                        m.Country = country; 
+                        return m;
+                    }));
                 }
                 page++;
-            } while (measurementsResponse != null && measurementsResponse.Results.Count == limit); 
+            } while (measurementsResponse != null && measurementsResponse.Results.Count == limit);
 
             // Save to DB
-            foreach (var measurement in measurements)
+            using (var transaction = _context.Database.BeginTransaction())
             {
-                var existingMeasurement = _context.Measurements
-                    .Include(m => m.Date)
-                    .Include(m => m.Coordinates)
-                    .FirstOrDefault(m => m.Location == measurement.Location && m.Parameter == measurement.Parameter);
-                if (existingMeasurement == null)
+                try
                 {
-                    Console.WriteLine("Adding new location");
-                    var existingDate = _context.Dates.FirstOrDefault(d => d.Utc == measurement.Date.Utc && d.Local == measurement.Date.Local);
-                    var existingCoordinates = _context.Coordinates.FirstOrDefault(c => c.Latitude == measurement.Coordinates.Latitude && c.Longitude == measurement.Coordinates.Longitude);
+                    foreach (var measurement in measurements)
+                    {
+                        var existingMeasurement = _context.Measurements
+                            .Include(m => m.Date)
+                            .Include(m => m.Coordinates)
+                            .FirstOrDefault(m => m.Location == measurement.Location && m.Parameter == measurement.Parameter);
+                        if (existingMeasurement == null)
+                        {
 
-                    if (existingDate == null)
-                    {
-                        _context.Dates.Add(measurement.Date);
-                        await _context.SaveChangesAsync();
-                    }
-                    else
-                    {
-                        measurement.Date = existingDate;
-                    }
+                            var existingDate = _context.Dates.FirstOrDefault(d => d.Utc == measurement.Date.Utc && d.Local == measurement.Date.Local);
+                            var existingCoordinates = _context.Coordinates.FirstOrDefault(c => c.Latitude == measurement.Coordinates.Latitude && c.Longitude == measurement.Coordinates.Longitude);
 
-                    if (existingCoordinates == null)
-                    {
-                        _context.Coordinates.Add(measurement.Coordinates);
-                        await _context.SaveChangesAsync();
-                    }
-                    else
-                    {
-                        measurement.Coordinates = existingCoordinates;
-                    }
+                            if (existingDate == null)
+                            {
+                                _context.Dates.Add(measurement.Date);
+                            }
+                            else
+                            {
+                                measurement.Date = existingDate;
+                            }
 
-                    _context.Measurements.Add(measurement);
+                            if (existingCoordinates == null)
+                            {
+                                _context.Coordinates.Add(measurement.Coordinates);
+                            }
+                            else
+                            {
+                                measurement.Coordinates = existingCoordinates;
+                            }
+
+                            _context.Measurements.Add(measurement);
+                        }
+                        else
+                        {
+                            existingMeasurement.Value = measurement.Value;
+                            existingMeasurement.Date = _context.Dates.FirstOrDefault(d => d.Utc == measurement.Date.Utc && d.Local == measurement.Date.Local);
+                            existingMeasurement.Coordinates = _context.Coordinates.FirstOrDefault(c => c.Latitude == measurement.Coordinates.Latitude && c.Longitude == measurement.Coordinates.Longitude);
+                        }
+                    }
+                    await _context.SaveChangesAsync();
+                    transaction.Commit();
                 }
-                else
+                catch (Exception e)
                 {
-                    existingMeasurement.Value = measurement.Value;
-                    existingMeasurement.Date = _context.Dates.FirstOrDefault(d => d.Utc == measurement.Date.Utc && d.Local == measurement.Date.Local);
-                    existingMeasurement.Coordinates = _context.Coordinates.FirstOrDefault(c => c.Latitude == measurement.Coordinates.Latitude && c.Longitude == measurement.Coordinates.Longitude);
+                    _logger.LogError($"Error saving measurements: {e.Message}");
+                    transaction.Rollback();
                 }
             }
-            await _context.SaveChangesAsync();
-
             return measurements;
         }
 
