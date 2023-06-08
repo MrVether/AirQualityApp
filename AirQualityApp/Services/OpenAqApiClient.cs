@@ -71,76 +71,70 @@ namespace AirQualityApp.Services
             var page = 1;
             const int limit = 1000;
             MeasurementsResponse measurementsResponse;
+            var fromDate = DateTime.UtcNow.AddHours(-72).ToString("yyyy-MM-ddTHH:mm:ssZ"); // get the date for 72 hours ago
 
             do
             {
-                var parameters = $"country={country}&parameter={parameter}&page={page}&limit={limit}";
+                var parameters = $"country={country}&parameter={parameter}&date_from={fromDate}&page={page}&limit={limit}";
                 var jsonResponse = await GetDataAsync(endpoint, parameters);
                 measurementsResponse = JsonConvert.DeserializeObject<MeasurementsResponse>(jsonResponse);
                 if (measurementsResponse != null && measurementsResponse.Results != null)
                 {
                     measurements.AddRange(measurementsResponse.Results.Select(m =>
                     {
-                        m.Country = country; 
+                        m.Country = country;
                         return m;
                     }));
                 }
                 page++;
             } while (measurementsResponse != null && measurementsResponse.Results.Count == limit);
+        
+
 
             // Save to DB
-            using (var transaction = _context.Database.BeginTransaction())
+            foreach (var measurement in measurements)
             {
-                try
+                var existingMeasurement = _context.Measurements
+                    .Include(m => m.Date)
+                    .Include(m => m.Coordinates)
+                    .FirstOrDefault(m => m.Location == measurement.Location && m.Parameter == measurement.Parameter);
+                if (existingMeasurement == null)
                 {
-                    foreach (var measurement in measurements)
+                    Console.WriteLine("Adding new location");
+                    var existingDate = _context.Dates.FirstOrDefault(d => d.Utc == measurement.Date.Utc && d.Local == measurement.Date.Local);
+                    var existingCoordinates = _context.Coordinates.FirstOrDefault(c => c.Latitude == measurement.Coordinates.Latitude && c.Longitude == measurement.Coordinates.Longitude);
+
+                    if (existingDate == null)
                     {
-                        var existingMeasurement = _context.Measurements
-                            .Include(m => m.Date)
-                            .Include(m => m.Coordinates)
-                            .FirstOrDefault(m => m.Location == measurement.Location && m.Parameter == measurement.Parameter);
-                        if (existingMeasurement == null)
-                        {
-
-                            var existingDate = _context.Dates.FirstOrDefault(d => d.Utc == measurement.Date.Utc && d.Local == measurement.Date.Local);
-                            var existingCoordinates = _context.Coordinates.FirstOrDefault(c => c.Latitude == measurement.Coordinates.Latitude && c.Longitude == measurement.Coordinates.Longitude);
-
-                            if (existingDate == null)
-                            {
-                                _context.Dates.Add(measurement.Date);
-                            }
-                            else
-                            {
-                                measurement.Date = existingDate;
-                            }
-
-                            if (existingCoordinates == null)
-                            {
-                                _context.Coordinates.Add(measurement.Coordinates);
-                            }
-                            else
-                            {
-                                measurement.Coordinates = existingCoordinates;
-                            }
-
-                            _context.Measurements.Add(measurement);
-                        }
-                        else
-                        {
-                            existingMeasurement.Value = measurement.Value;
-                            existingMeasurement.Date = _context.Dates.FirstOrDefault(d => d.Utc == measurement.Date.Utc && d.Local == measurement.Date.Local);
-                            existingMeasurement.Coordinates = _context.Coordinates.FirstOrDefault(c => c.Latitude == measurement.Coordinates.Latitude && c.Longitude == measurement.Coordinates.Longitude);
-                        }
+                        _context.Dates.Add(measurement.Date);
+                        await _context.SaveChangesAsync();
                     }
-                    await _context.SaveChangesAsync();
-                    transaction.Commit();
+                    else
+                    {
+                        measurement.Date = existingDate;
+                    }
+
+                    if (existingCoordinates == null)
+                    {
+                        _context.Coordinates.Add(measurement.Coordinates);
+                        await _context.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        measurement.Coordinates = existingCoordinates;
+                    }
+
+                    _context.Measurements.Add(measurement);
                 }
-                catch (Exception e)
+                else
                 {
-                    _logger.LogError($"Error saving measurements: {e.Message}");
-                    transaction.Rollback();
+                    existingMeasurement.Value = measurement.Value;
+                    existingMeasurement.Date = _context.Dates.FirstOrDefault(d => d.Utc == measurement.Date.Utc && d.Local == measurement.Date.Local);
+                    existingMeasurement.Coordinates = _context.Coordinates.FirstOrDefault(c => c.Latitude == measurement.Coordinates.Latitude && c.Longitude == measurement.Coordinates.Longitude);
                 }
             }
+            await _context.SaveChangesAsync();
+
             return measurements;
         }
 
