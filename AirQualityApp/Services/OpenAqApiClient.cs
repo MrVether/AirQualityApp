@@ -71,7 +71,7 @@ namespace AirQualityApp.Services
             var page = 1;
             const int limit = 1000;
             MeasurementsResponse measurementsResponse;
-            var fromDate = DateTime.UtcNow.AddHours(-72).ToString("yyyy-MM-ddTHH:mm:ssZ"); // get the date for 72 hours ago
+            var fromDate = DateTime.UtcNow.AddDays(-7).ToString("yyyy-MM-ddTHH:mm:ssZ"); // get the date for 72 hours ago
 
             do
             {
