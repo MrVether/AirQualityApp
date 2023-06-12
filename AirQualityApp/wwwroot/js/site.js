@@ -1,24 +1,19 @@
 ﻿let markersByLocation = {};
+let connection = new signalR.HubConnectionBuilder()
+    .withUrl("/mapHub")
+    .configureLogging(signalR.LogLevel.Information)
+    .build();
 
-async function fetchOpenAQData() {
-    const url = "https://api.openaq.org/v2/measurements?limit=100000";
-    const response = await fetch(url);
-    let data;
+connection.on("ReceiveMeasurements", function (measurementsByLocation) {
+    const map = initMap();
+    updateMarkers(map, measurementsByLocation);
+});
 
-    try {
-        data = await response.json();
-    } catch (e) {
-        console.error("Invalid JSON response:", e);
-        return [];
-    }
-
-    if (Array.isArray(data.results)) {
-        return data.results;
-    } else {
-        console.error("Unexpected data format:", data);
-        return [];
-    }
-}
+connection.start().then(function () {
+    console.log("connected");
+}).catch(function (err) {
+    return console.error(err.toString());
+});
 
 
 window.airQualityMap = null;
@@ -90,10 +85,14 @@ function getAirQualityInfo(pm10, pm25) {
 
 async function updateMarkers(map, measurementsByLocation) {
     console.log("Updating markers for:", measurementsByLocation);
+
+    const newMarkersByLocation = {};
+
     for (const [location, measurementTypes] of Object.entries(measurementsByLocation)) {
         console.log("Updating markers for location:", location);
         let firstMeasurement = Object.values(measurementTypes)[0];
         const { coordinates } = firstMeasurement;
+
 
         if (coordinates) {
             const latLng = [coordinates.latitude, coordinates.longitude];
@@ -107,7 +106,6 @@ async function updateMarkers(map, measurementsByLocation) {
                     marker.setStyle({ color: getColorForMeasurement(measurementTypes) });
                 } else {
                     marker = L.circle(latLng, { color: getColorForMeasurement(measurementTypes), radius: 500 }).addTo(map);
-                    markersByLocation[location] = marker;
                 }
 
                 let pm10 = measurementTypes.pm10 ? measurementTypes.pm10.value : 0;
@@ -122,6 +120,8 @@ async function updateMarkers(map, measurementsByLocation) {
                     document.getElementById('air-quality-info').textContent = `Air Quality: ${getAirQualityInfo(pm10, pm25)}`;
                 });
 
+                newMarkersByLocation[location] = marker;
+
             } else {
                 console.warn(`Unable to add marker for location "${location}" due to missing measurements.`);
             }
@@ -129,25 +129,19 @@ async function updateMarkers(map, measurementsByLocation) {
             console.warn(`Unable to add marker for location "${location}" due to missing coordinates.`);
         }
 
-        await new Promise(resolve => setTimeout(resolve, 0));
     }
 
     for (const location of Object.keys(markersByLocation)) {
-        if (!measurementsByLocation[location]) {
+        if (!newMarkersByLocation[location]) {
             map.removeLayer(markersByLocation[location]);
-            delete markersByLocation[location];
         }
     }
-}
 
+    markersByLocation = newMarkersByLocation;
+}
 
 window.initializeAirQualityMap = function () {
     const map = initMap();
-    fetchOpenAQData().then(measurements => {
-        if (measurements.length > 0) {
-            updateMarkers(map, measurements)
-        };
-    });
+
     return map;
 }
-

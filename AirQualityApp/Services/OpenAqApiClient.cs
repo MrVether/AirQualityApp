@@ -10,29 +10,57 @@ using System.Threading.Tasks;
 
 namespace AirQualityApp.Services
 {
+
+
     public class OpenAqApiClient
     {
         private static readonly HttpClient HttpClient = new HttpClient();
         private const string BaseUrl = "https://api.openaq.org/v2/";
         private readonly ILogger<OpenAqApiClient> _logger;
         private readonly AirQualityContext _context;
+        private List<IObserver> observers = new List<IObserver>();
+        public void Attach(IObserver observer)
+        {
+            observers.Add(observer);
+        }
+        public void Detach(IObserver observer)
+        {
+            observers.Remove(observer);
+        }
 
+        public void Notify(List<Measurement> measurements)
+        {
+            foreach (IObserver observer in observers)
+            {
+                observer.Update(measurements);
+            }
+        }
         public OpenAqApiClient(ILogger<OpenAqApiClient> logger, AirQualityContext context)
         {
             _logger = logger;
             _context = context;
         }
-
+        
         public async Task<List<Country>> GetCountriesAsync()
         {
             var endpoint = "countries";
-            var jsonResponse = await GetDataAsync(endpoint, "");
-            var countriesResponse = JsonConvert.DeserializeObject<CountriesResponse>(jsonResponse);
-            if (countriesResponse == null)
+            var countries = new List<Country>();
+            var page = 1;
+            const int limit = 100;
+            CountriesResponse countriesResponse;
+
+            do
             {
-                return new List<Country>();
-            }
-            var countries = countriesResponse.Results;
+                var parameters = $"page={page}&limit={limit}";
+                var jsonResponse = await GetDataAsync(endpoint, parameters);
+                countriesResponse = JsonConvert.DeserializeObject<CountriesResponse>(jsonResponse);
+
+                if (countriesResponse != null && countriesResponse.Results != null)
+                {
+                    countries.AddRange(countriesResponse.Results);
+                }
+                page++;
+            } while (countriesResponse != null && countriesResponse.Results.Count == limit);
 
             // Save to DB
             foreach (var country in countries)
@@ -47,6 +75,7 @@ namespace AirQualityApp.Services
             return countries;
         }
 
+
         public List<Country> GetCountriesFromDb()
         {
             return _context.Countries.ToList();
@@ -54,23 +83,31 @@ namespace AirQualityApp.Services
 
         public async Task<List<Measurement>> GetGlobalMeasurementsAsync(string parameter, string country)
         {
+            Console.WriteLine("Measurments Downloading..");
             var endpoint = "measurements";
             var measurements = new List<Measurement>();
             var page = 1;
             const int limit = 1000;
             MeasurementsResponse measurementsResponse;
+            var fromDate = DateTime.UtcNow.AddDays(-1).ToString("yyyy-MM-ddTHH:mm:ssZ");
 
             do
             {
-                var parameters = $"country={country}&parameter={parameter}&page={page}&limit={limit}";
+                var parameters = $"country={country}&parameter={parameter}&date_from={fromDate}&page={page}&limit={limit}";
                 var jsonResponse = await GetDataAsync(endpoint, parameters);
                 measurementsResponse = JsonConvert.DeserializeObject<MeasurementsResponse>(jsonResponse);
                 if (measurementsResponse != null && measurementsResponse.Results != null)
                 {
-                    measurements.AddRange(measurementsResponse.Results);
+                    measurements.AddRange(measurementsResponse.Results.Select(m =>
+                    {
+                        m.Country = country;
+                        return m;
+                    }));
                 }
                 page++;
-            } while (measurementsResponse != null && measurementsResponse.Results.Count == limit); 
+            } while (measurementsResponse != null && measurementsResponse.Results.Count == limit);
+
+
 
             // Save to DB
             foreach (var measurement in measurements)
@@ -115,6 +152,7 @@ namespace AirQualityApp.Services
                 }
             }
             await _context.SaveChangesAsync();
+            Notify(measurements);
 
             return measurements;
         }
@@ -125,7 +163,7 @@ namespace AirQualityApp.Services
             return _context.Measurements
                 .Where(m => m.Parameter == parameter && m.Country == country)
                 .Include(d => d.Date)
-                .Include(c=>c.Coordinates)
+                .Include(c => c.Coordinates)
                 .ToList();
         }
 
@@ -160,11 +198,11 @@ namespace AirQualityApp.Services
                     if (ex is System.Net.Sockets.SocketException socketException && socketException.SocketErrorCode == System.Net.Sockets.SocketError.HostNotFound)
                     {
                         _logger.LogError($"Host not found. Stopping further attempts.");
-                        break; 
+                        break;
                     }
                     else
                     {
-                        await Task.Delay(5000); 
+                        await Task.Delay(5000);
                         if (i == attempts - 1)
                         {
                             return string.Empty;
@@ -216,7 +254,7 @@ namespace AirQualityApp.Services
         public class MeasurementsResponse
         {
             [JsonProperty("results")]
-public List<Measurement> Results { get; set; }
-}
-}
+            public List<Measurement> Results { get; set; }
+        }
+    }
 }

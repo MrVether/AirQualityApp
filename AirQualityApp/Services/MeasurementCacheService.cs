@@ -2,7 +2,7 @@
 
 namespace AirQualityApp.Services
 {
-    public class MeasurementCacheService
+    public class MeasurementCacheService : IObserver
     {
         private List<Measurement> cachedMeasurements;
 
@@ -10,6 +10,11 @@ namespace AirQualityApp.Services
         {
             get { return cachedMeasurements; }
             set { cachedMeasurements = value; }
+        }
+
+        public void Update(List<Measurement> measurements)
+        {
+            CachedMeasurements = measurements;
         }
     }
 

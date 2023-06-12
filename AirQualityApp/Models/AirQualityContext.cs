@@ -16,5 +16,6 @@ namespace AirQualityApp.Models
         public DbSet<Coordinates> Coordinates { get; set; }
         public DbSet<Date> Dates { get; set; }
         public DbSet<Measurement> Measurements { get; set; }
+
     }
 }

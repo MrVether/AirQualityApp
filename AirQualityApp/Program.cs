@@ -1,5 +1,4 @@
 using AirQualityApp.BackgroundServices;
-using AirQualityApp.Hubs;
 using AirQualityApp.Models;
 using AirQualityApp.Services;
 using Microsoft.EntityFrameworkCore;
@@ -37,6 +36,5 @@ app.UseRouting();
 
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
-app.MapHub<MapHub>("/mapHub");
 
 app.Run();
