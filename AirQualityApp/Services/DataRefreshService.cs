@@ -15,32 +15,14 @@ namespace AirQualityApp.BackgroundServices
     public class DataRefreshService : BackgroundService
     {
         private readonly IServiceScopeFactory _serviceScopeFactory;
-        private readonly List<IObserver> observers;
         public bool CanStart { get; set;}=false;
 
         public DataRefreshService(IServiceScopeFactory serviceScopeFactory)
         {
             _serviceScopeFactory = serviceScopeFactory;
-            observers = new List<IObserver>();
         }
         
-        public void Attach(IObserver observer)
-        {
-            observers.Add(observer);
-        }
-
-        public void Detach(IObserver observer)
-        {
-            observers.Remove(observer);
-        }
-
-        public void Notify(List<Measurement> measurements)
-        {
-            foreach (IObserver observer in observers)
-            {
-                observer.Update(measurements);
-            }
-        }
+     
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
@@ -53,8 +35,6 @@ namespace AirQualityApp.BackgroundServices
                         var openAqApiClient = scope.ServiceProvider.GetRequiredService<OpenAqApiClient>();
 
                         var measurementCacheService = scope.ServiceProvider.GetRequiredService<MeasurementCacheService>();
-                        openAqApiClient.Attach(measurementCacheService);
-
                         var countries = await openAqApiClient.GetCountriesAsync();
                         Console.WriteLine("Updating..");
                         foreach (var country in countries)
@@ -82,7 +62,6 @@ namespace AirQualityApp.BackgroundServices
 
                                 var measurementsByLocation = openAqApiClient.GroupMeasurementsByLocation(measurements);
 
-                                Notify(measurements);
 
                             }
                             catch (System.Net.Sockets.SocketException socketException)
@@ -95,6 +74,8 @@ namespace AirQualityApp.BackgroundServices
                                 throw;
                             }
                         }
+                         measurementCacheService.UpdateDataInCache(openAqApiClient);
+
                         Console.WriteLine("Updated: " + DateTime.Now);
                         await Task.Delay(TimeSpan.FromHours(6), stoppingToken);
                     }

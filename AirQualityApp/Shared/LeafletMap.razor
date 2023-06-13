@@ -39,41 +39,15 @@
     {
         if (CacheService.CachedMeasurements == null)
         {
-            CacheService.CachedMeasurements = await FetchMeasurementsFromApi();
-            StartAutoRefresh();
+            CacheService.CachedMeasurements = await OpenAqApiClient.FetchMeasurementsFromDb();
         }
 
         return CacheService.CachedMeasurements;
     }
 
-    private async Task<List<Measurement>> FetchMeasurementsFromApi()
-    {
-        var measurements = new List<Measurement>();
-        var countries = OpenAqApiClient.GetCountriesFromDb();
+    
 
-        foreach (var country in countries)
-        {
-            var pm10 = OpenAqApiClient.GetGlobalMeasurementsFromDb("pm10", country.Code);
-            var pm25 = OpenAqApiClient.GetGlobalMeasurementsFromDb("pm25", country.Code);
-
-            measurements.AddRange(pm10);
-            measurements.AddRange(pm25);
-        }
-
-        return measurements;
-    }
-
-    private void StartAutoRefresh()
-    {
-        Task.Run(async () =>
-        {
-            while (true)
-            {
-                await Task.Delay(TimeSpan.FromMinutes(10));
-                CacheService.CachedMeasurements = await FetchMeasurementsFromApi();
-            }
-        });
-    }
+    
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

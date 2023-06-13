@@ -1,11 +1,13 @@
 ﻿using AirQualityApp.Models;
+using AirQualityApp.Services;
 
 namespace AirQualityApp.Services
 {
-    public class MeasurementCacheService : IObserver
+    public class MeasurementCacheService 
     {
         private List<Measurement> cachedMeasurements;
 
+     
         public List<Measurement> CachedMeasurements
         {
             get { return cachedMeasurements; }
@@ -15,6 +17,11 @@ namespace AirQualityApp.Services
         public void Update(List<Measurement> measurements)
         {
             CachedMeasurements = measurements;
+        }
+        public async void UpdateDataInCache(OpenAqApiClient openAqApiClient)
+        {
+            var measurments = await openAqApiClient.FetchMeasurementsFromDb();
+            CachedMeasurements = measurments;
         }
     }
 

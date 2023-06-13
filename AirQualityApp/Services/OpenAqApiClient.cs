@@ -18,23 +18,8 @@ namespace AirQualityApp.Services
         private const string BaseUrl = "https://api.openaq.org/v2/";
         private readonly ILogger<OpenAqApiClient> _logger;
         private readonly AirQualityContext _context;
-        private List<IObserver> observers = new List<IObserver>();
-        public void Attach(IObserver observer)
-        {
-            observers.Add(observer);
-        }
-        public void Detach(IObserver observer)
-        {
-            observers.Remove(observer);
-        }
-
-        public void Notify(List<Measurement> measurements)
-        {
-            foreach (IObserver observer in observers)
-            {
-                observer.Update(measurements);
-            }
-        }
+      
+        
         public OpenAqApiClient(ILogger<OpenAqApiClient> logger, AirQualityContext context)
         {
             _logger = logger;
@@ -89,7 +74,7 @@ namespace AirQualityApp.Services
             var page = 1;
             const int limit = 1000;
             MeasurementsResponse measurementsResponse;
-            var fromDate = DateTime.UtcNow.AddDays(-1).ToString("yyyy-MM-ddTHH:mm:ssZ");
+            var fromDate = DateTime.UtcNow.AddHours(-1).ToString("yyyy-MM-ddTHH:mm:ssZ");
 
             do
             {
@@ -152,12 +137,26 @@ namespace AirQualityApp.Services
                 }
             }
             await _context.SaveChangesAsync();
-            Notify(measurements);
 
             return measurements;
         }
 
+        public async Task<List<Measurement>> FetchMeasurementsFromDb()
+        {
+            var measurements = new List<Measurement>();
+            var countries = GetCountriesFromDb();
 
+            foreach (var country in countries)
+            {
+                var pm10 = GetGlobalMeasurementsFromDb("pm10", country.Code);
+                var pm25 = GetGlobalMeasurementsFromDb("pm25", country.Code);
+
+                measurements.AddRange(pm10);
+                measurements.AddRange(pm25);
+            }
+
+            return measurements;
+        }
         public List<Measurement> GetGlobalMeasurementsFromDb(string parameter, string country)
         {
             return _context.Measurements
