@@ -1,13 +1,12 @@
 ﻿using AirQualityApp.Models;
-using AirQualityApp.Services;
 
 namespace AirQualityApp.Services
 {
-    public class MeasurementCacheService 
+    public class MeasurementCacheService
     {
         private List<Measurement> cachedMeasurements;
 
-     
+
         public List<Measurement> CachedMeasurements
         {
             get { return cachedMeasurements; }

@@ -1,20 +1,4 @@
 ﻿let markersByLocation = {};
-let connection = new signalR.HubConnectionBuilder()
-    .withUrl("/mapHub")
-    .configureLogging(signalR.LogLevel.Information)
-    .build();
-
-connection.on("ReceiveMeasurements", function (measurementsByLocation) {
-    const map = initMap();
-    updateMarkers(map, measurementsByLocation);
-});
-
-connection.start().then(function () {
-    console.log("connected");
-}).catch(function (err) {
-    return console.error(err.toString());
-});
-
 
 window.airQualityMap = null;
 
@@ -41,8 +25,6 @@ function initMap() {
     return map;
 }
 
-
-
 function getColorForMeasurement(measurements) {
     let highestPmValue = 0;
 
@@ -67,21 +49,29 @@ function getColorForMeasurement(measurements) {
     }
 }
 
-function getAirQualityInfo(pm10, pm25) {
-    if (pm10 <= 20 && pm25 <= 10) {
-        return "Good";
-    } else if (pm10 <= 50 && pm25 <= 25) {
+function getAirQualityInfo(pm10, pm25, no2, o3) {
+    let caqi_pm10 = pm10 ? pm10 / 180 : 0; 
+    let caqi_pm25= pm25 ? pm25 / 110 : 0;
+    let caqi_no2 = no2 ? no2 / 400 : 0; 
+    let caqi_o3 = o3 ? o3 / 240 : 0; 
+
+    let highestCaqi = Math.max(caqi_pm10, caqi_pm25, caqi_no2, caqi_o3);
+
+    if (highestCaqi <= 0.25) {
+        return "Very Low";
+    } else if (highestCaqi <= 0.5) {
+        return "Low";
+    } else if (highestCaqi <= 0.75) {
         return "Moderate";
-    } else if (pm10 <= 80 && pm25 <= 50) {
-        return "Unhealthy for sensitive groups";
-    } else if (pm10 <= 120 && pm25 <= 75) {
-        return "Unhealthy";
-    } else if (pm10 <= 380 && pm25 <= 175) {
-        return "Very Unhealthy";
+    } else if (highestCaqi <= 1) {
+        return "High";
     } else {
-        return "Hazardous";
+        return "Very High";
     }
 }
+
+
+
 
 async function updateMarkers(map, measurementsByLocation) {
     console.log("Updating markers for:", measurementsByLocation);
@@ -110,14 +100,43 @@ async function updateMarkers(map, measurementsByLocation) {
 
                 let pm10 = measurementTypes.pm10 ? measurementTypes.pm10.value : 0;
                 let pm25 = measurementTypes.pm25 ? measurementTypes.pm25.value : 0;
+                let no2 = measurementTypes.no2 ? measurementTypes.no2.value : 0;
+                let o3 = measurementTypes.o3 ? measurementTypes.o3.value : 0;
+                let pm1 = measurementTypes.pm1 ? measurementTypes.pm1.value : 0;
+                let pm4 = measurementTypes.pm4 ? measurementTypes.pm4.value : 0;
+                let bc = measurementTypes.bc ? measurementTypes.bc.value : 0;
+                let co = measurementTypes.co ? measurementTypes.co.value : 0;
+                let so2 = measurementTypes.so2 ? measurementTypes.so2.value : 0;
+                let no = measurementTypes.no ? measurementTypes.no.value : 0;
+                let nox = measurementTypes.nox ? measurementTypes.nox.value : 0;
+                let ch4 = measurementTypes.ch4 ? measurementTypes.ch4.value : 0;
+                let co2 = measurementTypes.co2 ? measurementTypes.co2.value : 0;
+
+                    
+
+
+
+
+
 
                 marker.on('click', function () {
                     let lastUpdate = new Date(firstMeasurement.date.utc).toLocaleString();
                     document.getElementById('location-name').textContent = `Location: ${location}`;
-                    document.getElementById('pm10').textContent = `PM10: ${pm10} µg/m³`;
-                    document.getElementById('pm25').textContent = `PM2.5: ${pm25} µg/m³`;
+                    document.getElementById('pm10').textContent = `PM10:  ${measurementTypes.pm10 ? measurementTypes.pm10.value : 'N/A'}  µg/m³`;
+                    document.getElementById('pm25').textContent = `PM2.5: ${measurementTypes.pm25 ? measurementTypes.pm25.value : 'N/A'}  µg/m³`;
+                    document.getElementById('pm1').textContent = `PM1: ${measurementTypes.pm1 ? measurementTypes.pm1.value : 'N/A'} µg/m³`;
+                    document.getElementById('pm4').textContent = `PM4: ${measurementTypes.pm4 ? measurementTypes.pm4.value : 'N/A'} µg/m³`;
+                    document.getElementById('bc').textContent = `BC: ${measurementTypes.bc ? measurementTypes.bc.value : 'N/A'} µg/m³`;
+                    document.getElementById('no2').textContent = `NO2: ${measurementTypes.no2 ? measurementTypes.no2.value : 'N/A'} µg/m³`;
+                    document.getElementById('o3').textContent = `O3: ${measurementTypes.o3 ? measurementTypes.o3.value : 'N/A'} µg/m³`;
+                    document.getElementById('co').textContent = `CO: ${measurementTypes.co ? measurementTypes.co.value : 'N/A'} µg/m³`;
+                    document.getElementById('so2').textContent = `SO2: ${measurementTypes.so2 ? measurementTypes.so2.value : 'N/A'} µg/m³`;
+                    document.getElementById('no').textContent = `NO: ${measurementTypes.no ? measurementTypes.no.value : 'N/A'} µg/m³`;
+                    document.getElementById('nox').textContent = `NOx: ${measurementTypes.nox ? measurementTypes.nox.value : 'N/A'} µg/m³`;
+                    document.getElementById('ch4').textContent = `CH4: ${measurementTypes.ch4 ? measurementTypes.ch4.value : 'N/A'} µg/m³`;
+                    document.getElementById('co2').textContent = `CO2: ${measurementTypes.co2 ? measurementTypes.co2.value : 'N/A'} µg/m³`;
                     document.getElementById('last-update').textContent = `Last update: ${lastUpdate}`;
-                    document.getElementById('air-quality-info').textContent = `Air Quality: ${getAirQualityInfo(pm10, pm25)}`;
+                    document.getElementById('air-quality-info').textContent = `Air Quality: ${getAirQualityInfo(pm10, pm25,pm1,pm4,bc,no2,o3,co,so2,no,nox,ch4,co2)}`;
                 });
 
                 newMarkersByLocation[location] = marker;

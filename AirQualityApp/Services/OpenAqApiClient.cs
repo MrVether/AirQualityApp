@@ -1,12 +1,6 @@
 ﻿using AirQualityApp.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Threading.Tasks;
 
 namespace AirQualityApp.Services
 {
@@ -18,14 +12,14 @@ namespace AirQualityApp.Services
         private const string BaseUrl = "https://api.openaq.org/v2/";
         private readonly ILogger<OpenAqApiClient> _logger;
         private readonly AirQualityContext _context;
-      
-        
+
+
         public OpenAqApiClient(ILogger<OpenAqApiClient> logger, AirQualityContext context)
         {
             _logger = logger;
             _context = context;
         }
-        
+
         public async Task<List<Country>> GetCountriesAsync()
         {
             var endpoint = "countries";
@@ -74,7 +68,7 @@ namespace AirQualityApp.Services
             var page = 1;
             const int limit = 1000;
             MeasurementsResponse measurementsResponse;
-            var fromDate = DateTime.UtcNow.AddHours(-1).ToString("yyyy-MM-ddTHH:mm:ssZ");
+            var fromDate = DateTime.UtcNow.AddHours(-6).ToString("yyyy-MM-ddTHH:mm:ssZ");
 
             do
             {
@@ -150,9 +144,13 @@ namespace AirQualityApp.Services
             {
                 var pm10 = GetGlobalMeasurementsFromDb("pm10", country.Code);
                 var pm25 = GetGlobalMeasurementsFromDb("pm25", country.Code);
+                var no2 = GetGlobalMeasurementsFromDb("no2", country.Code);
+                var o3 = GetGlobalMeasurementsFromDb("o3", country.Code);
 
                 measurements.AddRange(pm10);
                 measurements.AddRange(pm25);
+                measurements.AddRange(no2);
+                measurements.AddRange(o3);
             }
 
             return measurements;
