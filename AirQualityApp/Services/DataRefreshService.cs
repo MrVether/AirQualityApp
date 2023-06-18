@@ -53,7 +53,8 @@ namespace AirQualityApp.BackgroundServices
                         {
                             foreach (var country in countries)
                             {
-                                var measurements = await openAqApiClient.GetGlobalMeasurementsAsync(task.MeasurementType, country.Code,task.Interval);
+                                Console.WriteLine($"Getting measurements for {country.Name} for {task.MeasurementType}");
+                               await openAqApiClient.GetGlobalMeasurementsAsync(task.MeasurementType, country.Code,task.Interval);
 
                             }
 
