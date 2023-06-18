@@ -60,7 +60,7 @@ namespace AirQualityApp.Services
             return _context.Countries.ToList();
         }
 
-        public async Task<List<Measurement>> GetGlobalMeasurementsAsync(string parameter, string country)
+        public async Task<List<Measurement>> GetGlobalMeasurementsAsync(string parameter, string country, TimeSpan timeSpan)
         {
             Console.WriteLine("Measurments Downloading..");
             var endpoint = "measurements";
@@ -68,7 +68,7 @@ namespace AirQualityApp.Services
             var page = 1;
             const int limit = 1000;
             MeasurementsResponse measurementsResponse;
-            var fromDate = DateTime.UtcNow.AddHours(-6).ToString("yyyy-MM-ddTHH:mm:ssZ");
+            var fromDate = DateTime.UtcNow.Add(-timeSpan).ToString("yyyy-MM-ddTHH:mm:ssZ");
 
             do
             {
