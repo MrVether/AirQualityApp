@@ -146,13 +146,33 @@ namespace AirQualityApp.Services
                 var pm25 = GetGlobalMeasurementsFromDb("pm25", country.Code);
                 var no2 = GetGlobalMeasurementsFromDb("no2", country.Code);
                 var o3 = GetGlobalMeasurementsFromDb("o3", country.Code);
+                var co = GetGlobalMeasurementsFromDb("co", country.Code);
+                var so2 = GetGlobalMeasurementsFromDb("so2", country.Code);
+                var bc = GetGlobalMeasurementsFromDb("bc", country.Code);
+                var nh3 = GetGlobalMeasurementsFromDb("nh3", country.Code);
+                var pm1 = GetGlobalMeasurementsFromDb("pm1", country.Code);
+                var pm4 = GetGlobalMeasurementsFromDb("pm4", country.Code);
+                var no = GetGlobalMeasurementsFromDb("no", country.Code);
+                var nox = GetGlobalMeasurementsFromDb("nox", country.Code);
+                var ch4 = GetGlobalMeasurementsFromDb("ch4", country.Code);
+                var co2 = GetGlobalMeasurementsFromDb("co2", country.Code);
+
 
                 measurements.AddRange(pm10);
                 measurements.AddRange(pm25);
                 measurements.AddRange(no2);
                 measurements.AddRange(o3);
+                measurements.AddRange(co);
+                measurements.AddRange(so2);
+                measurements.AddRange(bc);
+                measurements.AddRange(nh3);
+                measurements.AddRange(pm1);
+                measurements.AddRange(pm4);
+                measurements.AddRange(no);
+                measurements.AddRange(nox);
+                measurements.AddRange(ch4);
+                measurements.AddRange(co2);
             }
-
             return measurements;
         }
         public List<Measurement> GetGlobalMeasurementsFromDb(string parameter, string country)
@@ -231,6 +251,7 @@ namespace AirQualityApp.Services
                     if (measurement.Date != null && (!locations[location].ContainsKey(type) ||
                                                      DateTime.Parse(locations[location][type].Date.Utc) < DateTime.Parse(measurement.Date.Utc)))
                     {
+
                         locations[location][type] = measurement;
                     }
                 }

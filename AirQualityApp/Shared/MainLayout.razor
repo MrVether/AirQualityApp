@@ -2,18 +2,63 @@
 
 <PageTitle>AirQualityApp</PageTitle>
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
+<style>
+    #info-panel {
+        background-color: rgb(0, 120, 255);
+        border-radius: 15px;
+        padding: 1rem;
+        color: #ffffff;
+        width: 20%;
+        height: 80%;
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.05);
+        position: absolute;
+        z-index: 1000;
+        top: 90px;
+        right: 10px; 
+        overflow-y: auto;
+        font-family: Mulish, sans-serif;
+        font-weight: 400;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+    }
+
+        #info-panel h2 {
+            font-size: 1.5rem;
+            margin-bottom: .5rem;
+        }
+
+        #info-panel p {
+            margin-bottom: .5rem;
+        }
+</style>
+
+<main>
+    <div class="top-row px-4">
+        <a href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
     </div>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
-        </div>
+    <article class="content px-4">
+        @Body
+    </article>
 
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
-</div>
+    <div id="info-panel">
+        <h2>Details:</h2>
+        <p id="location-name"></p>
+        <p id="pm10"></p>
+        <p id="pm25"></p>
+        <p id="no2"></p>
+        <p id="o3"></p>
+        <p id="pm1"></p>
+        <p id="pm4"></p>
+        <p id="bc"></p>
+        <p id="co"></p>
+        <p id="so2"></p>
+        <p id="no"></p>
+        <p id="nox"></p>
+        <p id="ch4"></p>
+        <p id="co2"></p>
+        <p id="last-update"></p>
+        <p id="air-quality-info"></p>
+    </div>
+</main>

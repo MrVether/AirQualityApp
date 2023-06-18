@@ -68,9 +68,8 @@ a, .btn-link {
     top: 0;
     bottom: 0;
     right: 0;
-    left: 250px; /* Zak³adaj¹c, ¿e szerokoœæ paska nawigacji to 250px */
     height: 100vh;
-    width: calc(100% - 250px);
+    width: 100%;
 
 }
 
