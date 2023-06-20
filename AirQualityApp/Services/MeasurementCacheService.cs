@@ -1,27 +1,35 @@
-﻿using AirQualityApp.Models;
+﻿using Microsoft.Extensions.Caching.Memory;
+using AirQualityApp.Models;
+using System;
 
 namespace AirQualityApp.Services
 {
     public class MeasurementCacheService
     {
-        private List<Measurement> cachedMeasurements;
+        private IMemoryCache _cache;
 
-
-        public List<Measurement> CachedMeasurements
+        public MeasurementCacheService(IMemoryCache memoryCache)
         {
-            get { return cachedMeasurements; }
-            set { cachedMeasurements = value; }
+            _cache = memoryCache;
         }
 
-        public void Update(List<Measurement> measurements)
+        public List<Marker> GetCachedMeasurements()
         {
-            CachedMeasurements = measurements;
+            return _cache.Get<List<Marker>>("CachedMeasurements");
         }
+
+        public void Update(List<Marker> measurements)
+        {
+            var cacheEntryOptions = new MemoryCacheEntryOptions()
+                .SetSlidingExpiration(TimeSpan.FromHours(1)); // set cache to expire after 1 hour
+
+            _cache.Set("CachedMeasurements", measurements, cacheEntryOptions);
+        }
+
         public async void UpdateDataInCache(OpenAqApiClient openAqApiClient)
         {
-            var measurments = await openAqApiClient.FetchMeasurementsFromDb();
-            CachedMeasurements = measurments;
+            var measurments = await openAqApiClient.FetchAQIMeasurementsFromDb();
+            Update(measurments);
         }
     }
-
 }

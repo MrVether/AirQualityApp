@@ -173,6 +173,48 @@ namespace AirQualityApp.Services
             }
             return measurements;
         }
+
+        public async Task<List<Marker>> FetchAQIMeasurementsFromDb()
+        {
+            var measurements = new List<Marker>();
+            var countries = GetCountriesFromDb();
+
+            foreach (var country in countries)
+            {
+                var pm10 = GetAQIMeasurmentFromDB("pm10", country.Code);
+                var pm25 = GetAQIMeasurmentFromDB("pm25", country.Code);
+                var no2 = GetAQIMeasurmentFromDB("no2", country.Code);
+                var o3 = GetAQIMeasurmentFromDB("o3", country.Code);
+                var co = GetAQIMeasurmentFromDB("co", country.Code);
+                var so2 = GetAQIMeasurmentFromDB("so2", country.Code);
+                
+
+
+                measurements.AddRange(pm10);
+                measurements.AddRange(pm25);
+                measurements.AddRange(no2);
+                measurements.AddRange(o3);
+                measurements.AddRange(co);
+                measurements.AddRange(so2);
+          
+            }
+            return measurements;
+        }
+        public List<Marker> GetAQIMeasurmentFromDB(string parameter, string country)
+        {
+            return _context.Measurements
+                .Where(m => m.Parameter == parameter && m.Country == country)
+                .Select(m => new Marker
+                {
+                    Location = m.Location,
+                    Parameter = m.Parameter,
+                    Value = m.Value,
+                    Latitude = m.Coordinates.Latitude,
+                    Longitude = m.Coordinates.Longitude
+                })
+                .ToList();
+        }
+
         public List<Measurement> GetGlobalMeasurementsFromDb(string parameter, string country)
         {
             return _context.Measurements
@@ -258,6 +300,68 @@ namespace AirQualityApp.Services
             return locations;
         }
 
+        public Dictionary<string, Dictionary<string, Marker>> GroupMarkersByLocation(List<Marker> markers)
+        {
+            var locations = new Dictionary<string, Dictionary<string, Marker>>();
+
+            foreach (var marker in markers)
+            {
+                if (marker != null)
+                {
+                    var location = marker.Location;
+
+                    if (!locations.ContainsKey(location))
+                    {
+                        locations[location] = new Dictionary<string, Marker>();
+                    }
+
+                    var type = marker.Parameter;
+
+                    if (marker.Value != null && (!locations[location].ContainsKey(type)))
+                    {
+                        locations[location][type] = marker;
+                    }
+                }
+            }
+
+            return locations;
+        }
+
+        public List<Marker> CreateMarkersFromMeasurements(List<Marker> measurements)
+        {
+            var markers = new List<Marker>();
+
+            foreach (var measurement in measurements)
+            {
+                var marker = new Marker
+                {
+                    Location = measurement.Location,
+                    Country = measurement.Country,
+                    Parameter = measurement.Parameter,
+                    Latitude = measurement.Latitude,
+                    Longitude = measurement.Longitude,
+                    Value = measurement.Value
+                };
+
+                markers.Add(marker);
+            }
+
+            return markers;
+        }
+        public async Task<Measurement> GetDetailedMeasurementAsync(string location, string parameter)
+        {
+            var measurement = _context.Measurements
+                .Include(m => m.Date)
+                .Include(m => m.Coordinates)
+                .FirstOrDefault(m => m.Location == location && m.Parameter == parameter);
+
+            if (measurement == null)
+            {
+              
+            }
+
+            return measurement;
+        }
 
 
 

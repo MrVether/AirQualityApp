@@ -19,14 +19,17 @@
         Console.WriteLine("Map Initialized");
         Console.WriteLine("Fetching measurements from DB");
         var measurements = await GetMeasurementsAsync();
+        var dataForMarkers = OpenAqApiClient.CreateMarkersFromMeasurements(measurements);
         Console.WriteLine("Measurements fetched from DB");
 
         try
         {
             Console.WriteLine("Grouping measurements by location");
-            var measurementsByLocation = OpenAqApiClient.GroupMeasurementsByLocation(measurements);
-            Console.WriteLine("Received measurements by location: " + measurementsByLocation.ToString());
-            await JSRuntime.InvokeVoidAsync("updateMarkers", map, measurementsByLocation);
+            var markersByLocation = OpenAqApiClient.GroupMarkersByLocation(dataForMarkers);
+           // var measurementsByLocation = OpenAqApiClient.GroupMeasurementsByLocation(measurements);
+            Console.WriteLine("MarkersByLocation: " + markersByLocation);
+
+            await JSRuntime.InvokeVoidAsync("updateMarkers", map, markersByLocation);
             Console.WriteLine("Markers Added");
            
 
@@ -39,15 +42,19 @@
         }
     }
 
-    public async Task<List<Measurement>> GetMeasurementsAsync()
+    public async Task<List<Marker>> GetMeasurementsAsync()
     {
-        if (CacheService.CachedMeasurements == null)
+        var measurements = CacheService.GetCachedMeasurements();
+
+        if (measurements == null)
         {
-            CacheService.CachedMeasurements = await OpenAqApiClient.FetchMeasurementsFromDb();
+            measurements = await OpenAqApiClient.FetchAQIMeasurementsFromDb();
+            CacheService.Update(measurements);
         }
 
-        return CacheService.CachedMeasurements;
+        return measurements;
     }
+
 
     
 

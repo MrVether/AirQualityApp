@@ -8,23 +8,52 @@ function initMap() {
 
     const map = L.map("map", {
         minZoom: 2,
+        worldCopyJump: true,
         maxBounds: [
-            [-90, -180],
-            [90, 180]
+            [-90, -Infinity],
+            [90, Infinity]
         ]
     }).setView([0, 0], 2);
 
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        maxZoom: 19
+        maxZoom: 19,
     }).addTo(map);
+    let baseRadius = 20000; 
+
+    map.on('zoomend', function () {
+        let currentZoom = map.getZoom();
+        let newRadius = baseRadius / Math.pow(2, currentZoom);
+
+        for (const location in markersByLocation) {
+            markersByLocation[location].setRadius(newRadius);
+        }
+    });
+    L.Control.geocoder({
+        defaultMarkGeocode: false,
+        position: 'topleft',
+        geocoder: new L.Control.Geocoder.Nominatim()
+    })
+        .on('markgeocode', function (e) {
+            const bbox = e.geocode.bbox;
+            const poly = L.polygon([
+                bbox.getSouthEast(),
+                bbox.getNorthEast(),
+                bbox.getNorthWest(),
+                bbox.getSouthWest()
+            ]);
+            map.fitBounds(poly.getBounds());
+        })
+        .addTo(map);
 
     window.airQualityMap = map;
 
     return map;
 }
 
+
 function calculateAQI(measurements) {
+    console.log("Calculating AQI for measurements: ", measurements);
     let breakpoints = {
         'o3': [
             { lo: 0.000, hi: 0.054, aqiLo: 0, aqiHi: 50 },
@@ -106,12 +135,8 @@ function calculateAQI(measurements) {
                 pollutant = key;
             }
         } else {
-            console.error('No breakpoints defined for pollutant: ' + key);
         }
     });
-
-
-
 
 
     return {
@@ -119,6 +144,11 @@ function calculateAQI(measurements) {
         pollutant: pollutant
     };
 }
+
+
+
+
+
 
 function truncateConcentration(pollutant, concentration) {
     console.log("Pollutant: ", pollutant); 
@@ -158,6 +188,7 @@ function calculateIndex(bpArray, concentration) {
 }
 
 function getColorForMeasurement(measurements) {
+    console.log(measurements);
     const { aqi } = calculateAQI(measurements);
 
     if (aqi <= 50) {
@@ -193,70 +224,57 @@ function getUS_AQI(measurements) {
     }
 }
 
-async function updateMarkers(map, measurementsByLocation) {
-    console.log("Updating markers for:", measurementsByLocation);
+var markersGroup = L.markerClusterGroup();
 
-    const newMarkersByLocation = {};
+async function updateMarkers(map, markers) {
+    console.log("Updating markers for:", markers);
 
-    for (const [location, measurementTypes] of Object.entries(measurementsByLocation)) {
-        console.log("Updating markers for location:", location);
-        let firstMeasurement = Object.values(measurementTypes)[0];
-        const { coordinates } = firstMeasurement;
+    // Clear existing markers
+    markersGroup.clearLayers();
 
-        if (coordinates) {
-            const latLng = [coordinates.latitude, coordinates.longitude];
-            let marker = markersByLocation[location];
+    for (const location of Object.keys(markers)) {
+        console.log("Updating marker for location:", location);
+        const measurements = markers[location];
 
-            if (Object.values(measurementTypes).length > 0) {
-                let firstMeasurement = Object.values(measurementTypes)[0];
+        const anyMeasurement = measurements[Object.keys(measurements)[0]];
+        const latitude = anyMeasurement.latitude;
+        const longitude = anyMeasurement.longitude;
 
-                if (marker) {
-                    marker.setLatLng(latLng);
-                    marker.setStyle({ color: getColorForMeasurement(measurementTypes) });
-                } else {
-                    marker = L.circle(latLng, { color: getColorForMeasurement(measurementTypes), radius: 500 }).addTo(map);
-                }
-
-                marker.on('click', function () {
-                    let lastUpdate = new Date(firstMeasurement.date.utc).toLocaleString();
-                    document.getElementById('location-name').textContent = `Location: ${location}`;
-                    document.getElementById('last-update').textContent = `Last update: ${lastUpdate}`;
-
-                    const measurementTypesKeys = Object.keys(measurementTypes);
-
-                    for (let key of measurementTypesKeys) {
-                        if (measurementTypes[key]) {
-                            document.getElementById(key).textContent = `${key.toUpperCase()}: ${measurementTypes[key].value.toFixed(2)} µg/m³`;
-                        } else {
-                            document.getElementById(key).style.display = "none";
-                        }
-                    }
-
-                    document.getElementById('air-quality-info').textContent = `Air Quality: ${getUS_AQI(measurementTypes)}`;  
-                });
-
-
-                newMarkersByLocation[location] = marker;
-
-            } else {
-                console.warn(`Unable to add marker for location "${location}" due to missing measurements.`);
-            }
-        } else {
-            console.warn(`Unable to add marker for location "${location}" due to missing coordinates.`);
+        if (isNaN(latitude) || isNaN(longitude)) {
+            console.log(location, " has invalid coordinates - Latitude: ", latitude, " Longitude: ", longitude);
+            continue;
         }
+
+        const color = getColorForMeasurement(measurements);
+        console.log("Latitude: ", latitude, " Longitude: ", longitude);
+
+        const marker = L.circleMarker([latitude, longitude], {
+            color: color,
+            fillColor: color,
+            fillOpacity: 0.5,
+            radius: 10 // You may need to adjust the radius depending on your use case
+        });
+
+        markersGroup.addLayer(marker); // Add the marker to the MarkerClusterGroup
     }
 
-    for (const location of Object.keys(markersByLocation)) {
-        if (!newMarkersByLocation[location]) {
-            map.removeLayer(markersByLocation[location]);
-        }
-    }
+    map.addLayer(markersGroup); // Add the MarkerClusterGroup to the map
 
-    markersByLocation = newMarkersByLocation;
+    return markersGroup;
 }
 
 
-window.initializeAirQualityMap = function () {
+
+
+
+
+
+
+
+
+
+window.initializeAirQualityMap = async function () {
     const map = initMap();
+
     return map;
 }

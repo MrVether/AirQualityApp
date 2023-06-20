@@ -21,19 +21,19 @@ namespace AirQualityApp.BackgroundServices
 
             tasks = new List<ScheduledTask>
         {
-            new ScheduledTask { MeasurementType = "pm10", Interval = TimeSpan.FromMinutes(15) },
-            new ScheduledTask { MeasurementType = "pm25", Interval = TimeSpan.FromHours(1) },
-            new ScheduledTask { MeasurementType = "no2", Interval = TimeSpan.FromHours(2) },
-            new ScheduledTask { MeasurementType = "o3", Interval = TimeSpan.FromHours(4) },
-            new ScheduledTask { MeasurementType = "so2", Interval = TimeSpan.FromHours(6) },
-            new ScheduledTask { MeasurementType = "co", Interval = TimeSpan.FromHours(8) },
-            new ScheduledTask { MeasurementType = "bc", Interval = TimeSpan.FromHours(12) },
-            new ScheduledTask { MeasurementType = "ch4", Interval = TimeSpan.FromDays(1) },
-            new ScheduledTask { MeasurementType = "no", Interval = TimeSpan.FromDays(2) },
-            new ScheduledTask { MeasurementType = "nox", Interval = TimeSpan.FromDays(3) },
-            new ScheduledTask { MeasurementType = "co2", Interval = TimeSpan.FromDays(7) },
-            new ScheduledTask { MeasurementType = "pm1", Interval = TimeSpan.FromDays(7) },
-            new ScheduledTask { MeasurementType = "pm4", Interval = TimeSpan.FromDays(7) }
+            //new ScheduledTask { MeasurementType = "pm10", Interval = TimeSpan.FromMinutes(15) },
+            //new ScheduledTask { MeasurementType = "pm25", Interval = TimeSpan.FromHours(1) },
+            //new ScheduledTask { MeasurementType = "no2", Interval = TimeSpan.FromHours(2) },
+            //new ScheduledTask { MeasurementType = "o3", Interval = TimeSpan.FromHours(4) },
+            //new ScheduledTask { MeasurementType = "so2", Interval = TimeSpan.FromHours(6) },
+            //new ScheduledTask { MeasurementType = "co", Interval = TimeSpan.FromHours(8) },
+            //new ScheduledTask { MeasurementType = "bc", Interval = TimeSpan.FromHours(12) },
+            //new ScheduledTask { MeasurementType = "ch4", Interval = TimeSpan.FromDays(1) },
+            //new ScheduledTask { MeasurementType = "no", Interval = TimeSpan.FromDays(2) },
+            //new ScheduledTask { MeasurementType = "nox", Interval = TimeSpan.FromDays(3) },
+            //new ScheduledTask { MeasurementType = "co2", Interval = TimeSpan.FromDays(7) },
+            //new ScheduledTask { MeasurementType = "pm1", Interval = TimeSpan.FromDays(7) },
+            //new ScheduledTask { MeasurementType = "pm4", Interval = TimeSpan.FromDays(7) }
         };
         }
 
