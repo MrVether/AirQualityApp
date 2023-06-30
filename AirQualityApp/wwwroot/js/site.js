@@ -226,10 +226,10 @@ function getUS_AQI(measurements) {
 
 var markersGroup = L.markerClusterGroup();
 
-async function updateMarkers(map, markers) {
+function updateMarkers(map, markers) {
     console.log("Updating markers for:", markers);
 
-    // Clear existing markers
+    let markersGroup = L.markerClusterGroup();
     markersGroup.clearLayers();
 
     for (const location of Object.keys(markers)) {
@@ -252,20 +252,48 @@ async function updateMarkers(map, markers) {
             color: color,
             fillColor: color,
             fillOpacity: 0.5,
-            radius: 10 // You may need to adjust the radius depending on your use case
+            radius: 20
+        }).on('click', function (e) {
+            window.getMeasurementsFromCache(location);
         });
 
-        markersGroup.addLayer(marker); // Add the marker to the MarkerClusterGroup
+        markersGroup.addLayer(marker);
     }
 
-    map.addLayer(markersGroup); // Add the MarkerClusterGroup to the map
+    map.addLayer(markersGroup);
 
     return markersGroup;
 }
 
+window.init = function (dotNetObjectRef) {
+    window.dotNetHelper = dotNetObjectRef;
+}
+
+window.getMeasurementsFromCache = async function (location) {
+    let measurements = await window.dotNetHelper.invokeMethodAsync('GetMeasurementsAsync', location);
+    updateInfoPanel(measurements);
+};
 
 
-
+window.updateInfoPanel = function (location) {
+    document.getElementById('location-name').textContent = location.name;
+    document.getElementById('pm10').textContent = 'PM10: ' + location.pm10;
+    document.getElementById('pm25').textContent = 'PM2.5: ' + location.pm25;
+    document.getElementById('no2').textContent = 'NO2: ' + location.no2;
+    document.getElementById('o3').textContent = 'O3: ' + location.o3;
+    document.getElementById('pm1').textContent = 'PM1: ' + location.pm1;
+    document.getElementById('pm4').textContent = 'PM4: ' + location.pm4;
+    document.getElementById('bc').textContent = 'BC: ' + location.bc;
+    document.getElementById('co').textContent = 'CO: ' + location.co;
+    document.getElementById('so2').textContent = 'SO2: ' + location.so2;
+    document.getElementById('no').textContent = 'NO: ' + location.no;
+    document.getElementById('nox').textContent = 'NOx: ' + location.nox;
+    document.getElementById('ch4').textContent = 'CH4: ' + location.ch4;
+    document.getElementById('co2').textContent = 'CO2: ' + location.co2;
+    document.getElementById('air-quality-info').textContent = 'Air Quality: ' + location.airQualityInfo;
+    var lastUpdate = new Date(location.lastUpdate);
+    document.getElementById('last-update').textContent = 'Last update: ' + lastUpdate.toLocaleDateString() + ' ' + lastUpdate.toLocaleTimeString();
+}
 
 
 

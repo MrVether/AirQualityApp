@@ -1,17 +1,28 @@
-using AirQualityApp.BackgroundServices;
+using AirQualityApp.Services.BackgroundServices;
 using AirQualityApp.Models;
 using AirQualityApp.Services;
+using AirQualityApp.Services.Cache;
 using Microsoft.EntityFrameworkCore;
+using AirQualityApp.Interfaces.AirQualityAPI;
+using AirQualityApp.Services.AirQuaityAPI;
+using AirQualityApp.Interfaces.Cache;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddSingleton<IAQIMeasurementCacheService, AQIMeasurementCacheService>();
+builder.Services.AddSingleton<IDetailedMeasurementCacheService, DetailedMeasurmentCacheService>();
+
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
-builder.Services.AddScoped<OpenAqApiClient>();
-builder.Services.AddHostedService<DataRefreshService>();
+
 builder.Services.AddSignalR();
-builder.Services.AddSingleton<MeasurementCacheService>();
+
+builder.Services.AddScoped<IAirQualityDataProvider, AirQualityDataProvider>();
+builder.Services.AddScoped<IAirQualityDataStorage, AirQualityDatabaseDataStorage>();
+builder.Services.AddScoped<IAirQualityDataProcessor, AirQualityDataProcessor>();
+
+
 
 
 

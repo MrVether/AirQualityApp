@@ -1,16 +1,24 @@
 ﻿@page "/leafletmap"
-@using AirQualityApp.BackgroundServices;
+@using AirQualityApp.Interfaces.Cache;
+@using AirQualityApp.Services.BackgroundServices
+@using AirQualityApp.Interfaces.AirQualityAPI;
 @using Microsoft.JSInterop
-@using AirQualityApp.Services
+@using AirQualityApp.Services.Cache
 @using System.Text.Json
 @inject IJSRuntime JSRuntime
-@inject OpenAqApiClient OpenAqApiClient
-@inject MeasurementCacheService CacheService
+@inject IAirQualityDataStorage AirQualityDataStorage
+@inject IDetailedMeasurementCacheService DetailedCacheService
+@inject IAirQualityDataProcessor AirQualityDataProcessor
+@inject IAQIMeasurementCacheService AQIMeasurementCacheService
+
 @using AirQualityApp.Models
+
 
 <div id="map"></div>
 
 @code {
+
+
 
     private async Task InitializeMapAsync()
     {
@@ -18,23 +26,23 @@
 
         Console.WriteLine("Map Initialized");
         Console.WriteLine("Fetching measurements from DB");
-        var measurements = await GetMeasurementsAsync();
-        var dataForMarkers = OpenAqApiClient.CreateMarkersFromMeasurements(measurements);
+        var AQImeasurements = await GetAQIMeasurementsAsync();
+        var dataForMarkers = AirQualityDataProcessor.CreateMarkersFromMeasurements(AQImeasurements);
         Console.WriteLine("Measurements fetched from DB");
 
         try
         {
             Console.WriteLine("Grouping measurements by location");
-            var markersByLocation = OpenAqApiClient.GroupMarkersByLocation(dataForMarkers);
-           // var measurementsByLocation = OpenAqApiClient.GroupMeasurementsByLocation(measurements);
+            var markersByLocation = AirQualityDataProcessor.GroupMarkersByLocation(dataForMarkers);
             Console.WriteLine("MarkersByLocation: " + markersByLocation);
 
             await JSRuntime.InvokeVoidAsync("updateMarkers", map, markersByLocation);
+
             Console.WriteLine("Markers Added");
-           
 
-
-
+            var dotNetObject = new MyDotNetObject(DetailedCacheService, AirQualityDataStorage);
+            var dotNetObjectRef = DotNetObjectReference.Create(dotNetObject);
+            await JSRuntime.InvokeVoidAsync("init", dotNetObjectRef);
         }
         catch (Exception e)
         {
@@ -42,24 +50,44 @@
         }
     }
 
-    public async Task<List<Marker>> GetMeasurementsAsync()
+    public async Task<List<Marker>> GetAQIMeasurementsAsync()
     {
-        var measurements = CacheService.GetCachedMeasurements();
+        var measurements = AQIMeasurementCacheService.GetCachedMeasurements();
 
         if (measurements == null)
         {
-            measurements = await OpenAqApiClient.FetchAQIMeasurementsFromDb();
-            CacheService.Update(measurements);
+            measurements = await AirQualityDataStorage.FetchAQIMeasurementsFromDb();
+            AQIMeasurementCacheService.Update(measurements);
         }
 
         return measurements;
     }
+    public class MyDotNetObject
+    {
+        private IDetailedMeasurementCacheService _detailedCacheService;
+        private IAirQualityDataStorage _airQualityDataStorage;
 
+        public MyDotNetObject(IDetailedMeasurementCacheService detailedCacheService, IAirQualityDataStorage airQualityDataStorage)
+        {
+            _detailedCacheService = detailedCacheService;
+            _airQualityDataStorage = airQualityDataStorage;
+        }
 
-    
+        [JSInvokable("GetMeasurementsAsync")]
+        public async Task<List<Measurement>> GetMeasurementsAsync(string location)
+        {
+            var measurements = _detailedCacheService.GetCachedMeasurements();
 
-    
+            if (measurements == null)
+            {
+                measurements = await _airQualityDataStorage.FetchMeasurementsFromDb();
+                _detailedCacheService.Update(measurements);
+            }
+            var filteredMeasurements = measurements.Where(m => m.Location == location).ToList();
 
+            return filteredMeasurements;
+        }
+    }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
