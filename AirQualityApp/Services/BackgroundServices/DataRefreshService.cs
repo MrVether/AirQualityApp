@@ -1,4 +1,5 @@
-﻿using AirQualityApp.Interfaces.Cache;
+﻿using AirQualityApp.Interfaces.AirQualityAPI;
+using AirQualityApp.Interfaces.Cache;
 using AirQualityApp.Services.Cache;
 using System.Diagnostics;
 
@@ -44,10 +45,10 @@ namespace AirQualityApp.Services.BackgroundServices
             {
                 using (var scope = _serviceScopeFactory.CreateScope())
                 {
-                    var airQualityDatabaseDataStorage = scope.ServiceProvider.GetRequiredService<AirQualityDatabaseDataStorage>();
-                    var airQualityDataProviders = scope.ServiceProvider.GetRequiredService<AirQualityDataProvider>();
+                    var airQualityDatabaseDataStorage = scope.ServiceProvider.GetRequiredService<IAirQualityDataStorage>();
+                    var airQualityDataProviders = scope.ServiceProvider.GetRequiredService<IAirQualityDataProvider>();
                     var AQImeasurementCacheService = scope.ServiceProvider.GetRequiredService<IAQIMeasurementCacheService>();
-                    var detailedMeasurementCacheService = scope.ServiceProvider.GetRequiredService<DetailedMeasurmentCacheService>();
+                    var detailedMeasurementCacheService = scope.ServiceProvider.GetRequiredService<IDetailedMeasurementCacheService>();
                     var countries = await airQualityDataProviders.GetCountriesAsync();
 
                     foreach (var task in tasks)

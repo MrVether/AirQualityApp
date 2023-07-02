@@ -1,11 +1,12 @@
-﻿using AirQualityApp.Models;
+﻿using AirQualityApp.Interfaces.AirQualityAPI;
+using AirQualityApp.Models;
 
 namespace AirQualityApp.Interfaces.Cache
 {
     public interface IDetailedMeasurementCacheService
     {
-        List<Measurement> GetCachedMeasurements();
+        List<Measurement> GetDetailedMeasurementsAsync();
         void Update(List<Measurement> measurements);
-        void UpdateDataInCache(AirQualityDatabaseDataStorage airQualityDatabaseStorage);
+        void UpdateDataInCache(IAirQualityDataStorage airQualityDatabaseStorage);
     }
 }

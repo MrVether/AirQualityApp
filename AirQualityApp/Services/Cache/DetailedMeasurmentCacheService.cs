@@ -2,6 +2,7 @@
 using AirQualityApp.Models;
 using System;
 using AirQualityApp.Interfaces.Cache;
+using AirQualityApp.Interfaces.AirQualityAPI;
 
 namespace AirQualityApp.Services.Cache
 {
@@ -14,9 +15,9 @@ namespace AirQualityApp.Services.Cache
             _cache = memoryCache;
         }
 
-        public List<Measurement> GetCachedMeasurements()
+        public List<Measurement> GetDetailedMeasurementsAsync()
         {
-            return _cache.Get<List<Measurement>>("CachedMeasurements");
+            return _cache.Get<List<Measurement>>("CachedDetailedMeasurements");
         }
 
         public void Update(List<Measurement> measurements)
@@ -24,10 +25,10 @@ namespace AirQualityApp.Services.Cache
             var cacheEntryOptions = new MemoryCacheEntryOptions()
                 .SetSlidingExpiration(TimeSpan.FromHours(1)); // set cache to expire after 1 hour
 
-            _cache.Set("CachedMeasurements", measurements, cacheEntryOptions);
+            _cache.Set("CachedDetailedMeasurements", measurements, cacheEntryOptions);
         }
 
-        public async void UpdateDataInCache(AirQualityDatabaseDataStorage airQualityDatabaseStorage)
+        public async void UpdateDataInCache(IAirQualityDataStorage airQualityDatabaseStorage)
         {
             var measurments = await airQualityDatabaseStorage.FetchMeasurementsFromDb();
             Update(measurments);

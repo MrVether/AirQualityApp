@@ -6,6 +6,10 @@ using Microsoft.EntityFrameworkCore;
 using AirQualityApp.Interfaces.AirQualityAPI;
 using AirQualityApp.Services.AirQuaityAPI;
 using AirQualityApp.Interfaces.Cache;
+using AirQualityApp.Interfaces.Helpers;
+using AirQualityApp.Interfaces.Map;
+using AirQualityApp.Services.Helpers;
+using AirQualityApp.Services.Map;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,10 +21,14 @@ builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
 builder.Services.AddSignalR();
-
 builder.Services.AddScoped<IAirQualityDataProvider, AirQualityDataProvider>();
 builder.Services.AddScoped<IAirQualityDataStorage, AirQualityDatabaseDataStorage>();
 builder.Services.AddScoped<IAirQualityDataProcessor, AirQualityDataProcessor>();
+builder.Services.AddScoped<IMapInitializationService, MapInitializationService>();
+builder.Services.AddScoped<IAQIMeasurementsService, AQIMeasurementsService>();
+builder.Services.AddScoped<IDotNetInteropHelper, DotNetInteropHelper>();
+builder.Services.AddHostedService<DataRefreshService>();
+
 
 
 

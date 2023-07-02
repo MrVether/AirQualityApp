@@ -1,99 +1,44 @@
 ﻿@page "/leafletmap"
-@using AirQualityApp.Interfaces.Cache;
-@using AirQualityApp.Services.BackgroundServices
-@using AirQualityApp.Interfaces.AirQualityAPI;
+@using AirQualityApp.Interfaces
+@using AirQualityApp.Interfaces.Helpers;
+@using AirQualityApp.Interfaces.Map;
 @using Microsoft.JSInterop
-@using AirQualityApp.Services.Cache
-@using System.Text.Json
-@inject IJSRuntime JSRuntime
-@inject IAirQualityDataStorage AirQualityDataStorage
-@inject IDetailedMeasurementCacheService DetailedCacheService
-@inject IAirQualityDataProcessor AirQualityDataProcessor
-@inject IAQIMeasurementCacheService AQIMeasurementCacheService
-
 @using AirQualityApp.Models
-
+@inject IJSRuntime JSRuntime
+@inject IMapInitializationService MapInitializationService
+@inject IAQIMeasurementsService AQIMeasurementsService
+@inject IDotNetInteropHelper DotNetInteropHelper
 
 <div id="map"></div>
 
 @code {
-
-
-
-    private async Task InitializeMapAsync()
-    {
-        var map = await JSRuntime.InvokeAsync<IJSObjectReference>("initializeAirQualityMap");
-
-        Console.WriteLine("Map Initialized");
-        Console.WriteLine("Fetching measurements from DB");
-        var AQImeasurements = await GetAQIMeasurementsAsync();
-        var dataForMarkers = AirQualityDataProcessor.CreateMarkersFromMeasurements(AQImeasurements);
-        Console.WriteLine("Measurements fetched from DB");
-
-        try
-        {
-            Console.WriteLine("Grouping measurements by location");
-            var markersByLocation = AirQualityDataProcessor.GroupMarkersByLocation(dataForMarkers);
-            Console.WriteLine("MarkersByLocation: " + markersByLocation);
-
-            await JSRuntime.InvokeVoidAsync("updateMarkers", map, markersByLocation);
-
-            Console.WriteLine("Markers Added");
-
-            var dotNetObject = new MyDotNetObject(DetailedCacheService, AirQualityDataStorage);
-            var dotNetObjectRef = DotNetObjectReference.Create(dotNetObject);
-            await JSRuntime.InvokeVoidAsync("init", dotNetObjectRef);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine("Error: " + e.Message);
-        }
-    }
-
-    public async Task<List<Marker>> GetAQIMeasurementsAsync()
-    {
-        var measurements = AQIMeasurementCacheService.GetCachedMeasurements();
-
-        if (measurements == null)
-        {
-            measurements = await AirQualityDataStorage.FetchAQIMeasurementsFromDb();
-            AQIMeasurementCacheService.Update(measurements);
-        }
-
-        return measurements;
-    }
-    public class MyDotNetObject
-    {
-        private IDetailedMeasurementCacheService _detailedCacheService;
-        private IAirQualityDataStorage _airQualityDataStorage;
-
-        public MyDotNetObject(IDetailedMeasurementCacheService detailedCacheService, IAirQualityDataStorage airQualityDataStorage)
-        {
-            _detailedCacheService = detailedCacheService;
-            _airQualityDataStorage = airQualityDataStorage;
-        }
-
-        [JSInvokable("GetMeasurementsAsync")]
-        public async Task<List<Measurement>> GetMeasurementsAsync(string location)
-        {
-            var measurements = _detailedCacheService.GetCachedMeasurements();
-
-            if (measurements == null)
-            {
-                measurements = await _airQualityDataStorage.FetchMeasurementsFromDb();
-                _detailedCacheService.Update(measurements);
-            }
-            var filteredMeasurements = measurements.Where(m => m.Location == location).ToList();
-
-            return filteredMeasurements;
-        }
-    }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             await InitializeMapAsync();
+        }
+    }
 
+    private async Task InitializeMapAsync()
+    {
+        try
+        {
+            var map = await MapInitializationService.InitializeMapAsync();
+            Console.WriteLine("Map Initialized");
+
+            var markersByLocation = await AQIMeasurementsService.GetAQIMeasurementsAsync();
+            Console.WriteLine("MarkersByLocation: " + markersByLocation);
+
+            await JSRuntime.InvokeVoidAsync("updateMarkers", map, markersByLocation);
+            Console.WriteLine("Markers Added");
+            var dotNetObjectRef = DotNetObjectReference.Create(DotNetInteropHelper);
+            await JSRuntime.InvokeVoidAsync("init", dotNetObjectRef);
+
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("Error: " + e.Message);
         }
     }
 }
